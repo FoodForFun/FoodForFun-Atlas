@@ -150,6 +150,12 @@ activemq-data/
 # Environments
 .env
 .envrc
+
+# Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
 .venv
 env/
 venv/
