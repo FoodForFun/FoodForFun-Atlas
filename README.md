@@ -32,6 +32,10 @@ Our mission is to preserve culinary knowledge, connect people across cultures, a
 
 🚧 This project is currently under active design and development.
 
+## Local environment setup
+
+Copy `.env.example` to `.env.local` for local development. Add local values when external services are configured, and never commit `.env.local`.
+
 ## Project Documentation
 
 - [Vision](docs/01_Vision.md)
