@@ -38,6 +38,7 @@ Copy `.env.example` to `.env.local` for local development. Add local values when
 
 ## Project Documentation
 
+- [Contribution Guide](CONTRIBUTING.md)
 - [Vision](docs/01_Vision.md)
 - [MVP Scope](docs/02_MVP_Scope.md)
 - [Data Model](docs/03_Data_Model.md)
