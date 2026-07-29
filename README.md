@@ -46,5 +46,6 @@ Copy `.env.example` to `.env.local` for local development. Add local values when
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
+- [Environment Testing](docs/08_Environment_Testing.md)
 
 Version: 0.1
