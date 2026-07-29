@@ -45,5 +45,6 @@ Copy `.env.example` to `.env.local` for local development. Add local values when
 - [Admin Workflow](docs/04_Admin_Workflow.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
+- [Deployment](docs/07_Deployment.md)
 
 Version: 0.1
