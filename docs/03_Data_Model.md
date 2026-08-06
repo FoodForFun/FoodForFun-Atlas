@@ -1,419 +1,447 @@
-# FoodForFun Atlas — Vision
+# FoodForFun Atlas — Initial MVP Data Model
 
-**Document Version:** 0.1
+**Document Version:** 0.2
+
 **Project Version:** 0.1
-**Status:** Draft
-**Last Updated:** July 2026
+
+**Status:** Implemented locally, not yet applied to a remote database
+
+**Last Updated:** August 2026
 
 ---
 
-## 1. What Is FoodForFun Atlas?
+## 1. Purpose and Scope
 
-FoodForFun Atlas is a digital platform for discovering people, communities, and the world through food.
+This document describes the initial MVP database schema defined by
+`supabase/migrations/20260805062835_initialize_core_schema.sql`.
 
-It is not primarily a restaurant review website, a food ranking platform, or a travel guide.
-
-The project begins with food, but its real subject is human life:
-
-* the people who prepare food;
-* the small businesses they operate;
-* the communities around them;
-* the places where they live and work;
-* the daily routines behind each meal;
-* and the social and cultural relationships connected through food.
-
-FoodForFun Atlas organizes these stories into a searchable and connected digital archive.
-
----
-
-## 2. Core Idea
-
-> **Through food, understand people.
-> Through people, understand the world.**
-
-Food is one of the most direct ways to enter another person’s daily life.
-
-A meal can reveal:
-
-* how someone works;
-* how a family operates a small business;
-* how a neighborhood changes;
-* how traditions are maintained or adapted;
-* how migration affects identity;
-* how people support one another;
-* and how ordinary life differs or remains similar across places.
-
-FoodForFun Atlas uses food as the starting point, not the final destination.
-
----
-
-## 3. Vision
-
-FoodForFun Atlas aims to become a long-term digital record of people, food, small businesses, communities, and everyday life around the world.
-
-The platform should allow a visitor to begin with one story and continue exploring through connected relationships:
+The schema supports the minimum Source-to-Story publishing model with seven
+tables:
 
 ```text
-Food
-  ↓
-People
-  ↓
-Small businesses
-  ↓
-Communities
-  ↓
-Places
-  ↓
-Shared human experiences
+stories
+places
+themes
+sources
+story_places
+story_themes
+story_sources
 ```
 
-Over time, Atlas should help visitors discover not only what is different between places, but also what people have in common.
+The four entity tables use generated UUID primary keys. The three relationship
+tables use composite primary keys. All timestamps use `timestamptz`.
+
+The migration is stored locally but has not been applied to PostgreSQL or a
+remote Supabase project.
 
 ---
 
-## 4. Mission
-
-The mission of FoodForFun Atlas is to:
-
-1. Document real people and everyday food-related work.
-2. Preserve stories connected to small shops, families, markets, and communities.
-3. Organize videos, interviews, notes, images, and research into structured information.
-4. Connect stories through people, places, food, organizations, and themes.
-5. Make these records searchable, understandable, and accessible.
-6. Use technology and AI to support research and editing without replacing human judgment.
-7. Build a sustainable platform that can continue growing over many years.
-
----
-
-## 5. Why Atlas?
-
-FoodForFun already produces video content, but videos alone have limitations.
-
-Older videos can become difficult to rediscover. Important information may remain inside subtitles, descriptions, or spoken conversations. Related stories may be separated across different years, countries, and platforms.
-
-Atlas creates a structured layer above the original content.
-
-A YouTube video may become the source for:
-
-* a story;
-* a person profile;
-* a shop or organization record;
-* a place record;
-* a food record;
-* a theme;
-* a map location;
-* and related stories from other parts of the world.
-
-The original video remains important, but Atlas makes its information easier to preserve, connect, search, and understand.
-
----
-
-## 6. What Atlas Records
-
-FoodForFun Atlas may include:
-
-### Stories
-
-Edited narratives based on videos, interviews, field notes, photographs, and research.
-
-### People
-
-Shop owners, cooks, workers, family members, customers, farmers, vendors, and other people appearing in the stories.
-
-### Organizations
-
-Small restaurants, market stalls, family businesses, farms, workshops, community kitchens, and related organizations.
-
-### Places
-
-Countries, cities, neighborhoods, markets, streets, and other relevant geographic locations.
-
-### Foods
-
-Dishes, ingredients, drinks, preparation methods, and food traditions appearing in the stories.
-
-### Themes
-
-Recurring ideas such as:
-
-* independent operation;
-* family business;
-* neighborhood relationships;
-* morning work;
-* night work;
-* migration;
-* generational change;
-* local markets;
-* daily labor;
-* and community life.
-
-### Sources
-
-YouTube videos, subtitles, interviews, articles, photographs, notes, and other supporting materials.
-
----
-
-## 7. Editorial Position
-
-FoodForFun Atlas uses a documentary-style editorial approach.
-
-The tone should be:
-
-* calm;
-* truthful;
-* restrained;
-* natural;
-* warm;
-* specific;
-* and respectful.
-
-The platform should not force emotional conclusions on the audience.
-
-It should avoid exaggerating people’s lives or turning ordinary work into dramatic mythology.
-
-The goal is to present enough detail for visitors to form their own understanding.
-
----
-
-## 8. What Atlas Is Not
-
-FoodForFun Atlas is not:
-
-* a restaurant ranking platform;
-* a food review website;
-* a “must-eat” recommendation list;
-* a travel booking service;
-* an advertising directory;
-* a delivery platform;
-* a user-rating platform;
-* a celebrity chef database;
-* or a global food encyclopedia.
-
-Atlas may record shops and food, but it does not exist to decide which restaurant is best.
-
-It may display locations, but it does not exist primarily to help users plan where to eat.
-
-Its main purpose is documentation, connection, and understanding.
-
----
-
-## 9. Technology Principles
-
-Technology should support the project without becoming the focus of the project.
-
-FoodForFun Atlas should:
-
-* use mature and stable technologies;
-* reduce long-term maintenance costs;
-* remain understandable to future contributors;
-* preserve structured data separately from website presentation;
-* support future growth without unnecessary complexity;
-* avoid adding tools only because they are fashionable;
-* maintain clear documentation;
-* protect source information and original records;
-* and allow manual operation when automation fails.
-
-The project should not introduce complexity only to demonstrate technical sophistication.
-
----
-
-## 10. AI Principles
-
-AI will be used to assist with:
-
-* transcript cleaning;
-* translation;
-* content summaries;
-* entity extraction;
-* topic suggestions;
-* draft generation;
-* metadata creation;
-* search;
-* and repetitive administrative work.
-
-AI should not independently:
-
-* publish stories;
-* confirm personal identities;
-* invent missing facts;
-* determine exact private locations;
-* make copyright decisions;
-* overwrite verified human edits;
-* or present uncertain information as fact.
-
-AI output should be treated as a suggestion until reviewed by a person.
-
-The system should clearly separate:
+## 2. Relationship Overview
 
 ```text
-Original Source
-      ↓
-AI Suggestion
-      ↓
-Human Review
-      ↓
-Verified Atlas Record
+stories --< story_places  >-- places
+stories --< story_themes  >-- themes
+stories --< story_sources >-- sources
+
+places  -- optional parent_place_id --> places
 ```
 
----
-
-## 11. Privacy and Respect
-
-Not every person or place should be fully identified.
-
-FoodForFun Atlas should support:
-
-* public names;
-* partial names;
-* public aliases;
-* anonymous identities;
-* exact locations;
-* neighborhood-level locations;
-* city-level locations;
-* and hidden locations.
-
-Private homes, vulnerable individuals, and uncertain locations should not be publicly exposed.
-
-When information cannot be confirmed, Atlas should say so clearly rather than guess.
+- Stories and Places have a many-to-many relationship.
+- Stories and Themes have a many-to-many relationship.
+- Stories and Sources have a many-to-many relationship.
+- A Place may optionally reference another Place as its parent.
+- Relationship rows contain references and creation time only; they do not
+  duplicate Story or entity content.
 
 ---
 
-## 12. Source Transparency
+## 3. Story Status Model
 
-Every published story should maintain a clear relationship with its sources.
+The initial schema intentionally supports only two Story statuses:
 
-Where possible, Atlas should record:
+| Status | Meaning | Publicly readable |
+| --- | --- | --- |
+| `draft` | Work that has not been published | No |
+| `published` | Story content eligible for publication | At or after `published_at` |
 
-* the original video or source;
-* the original publisher;
-* the publication date;
-* the source language;
-* whether translation was used;
-* whether additional editorial research was added;
-* and when the information was last reviewed.
+`draft` is the default. A check constraint rejects any other status, and a
+Story cannot have `published` status without a `published_at` value. Public
+visibility begins only when `published_at` is less than or equal to the current
+database time. This supports future publication times without adding a scheduled
+status.
 
-Source material and edited Atlas content should remain separate.
-
-A source is evidence.
-
-A Story is the edited interpretation and presentation of that evidence.
-
----
-
-## 13. Intended Audience
-
-FoodForFun Atlas is intended for people who are interested in:
-
-* everyday life in different parts of the world;
-* small shops and independent businesses;
-* food culture;
-* migration and identity;
-* communities and neighborhoods;
-* documentary storytelling;
-* human-centered travel and cultural learning;
-* and the relationships between food, work, and society.
-
-Visitors should not need specialist knowledge to use the platform.
-
-The website should remain clear and accessible on both desktop and mobile devices.
+The broader editorial workflow described elsewhere in the project may include
+review, approval, or archival concepts. Those workflow statuses are not
+implemented in this initial database schema. There is no separate workflow
+engine.
 
 ---
 
-## 14. Long-Term Direction
+## 4. `stories`
 
-FoodForFun Atlas may eventually include:
+### Purpose
 
-* a public website;
-* a structured Atlas database;
-* an interactive map;
-* full-text and semantic search;
-* person and organization profiles;
-* food and theme pages;
-* multilingual content;
-* AI-assisted editorial workflows;
-* YouTube production workflows;
-* APIs;
-* data collection tools;
-* data analysis;
-* SEO systems;
-* automated content preparation;
-* and controlled contributions from additional editors.
+Stores the edited narratives published by FoodForFun Atlas. Draft and published
+content share this table and are separated for public access by Row Level
+Security.
 
-These features should be added gradually.
+### Columns
 
-The project should first prove that it can consistently transform source material into accurate, connected, and useful stories.
+| Column | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | Yes | `gen_random_uuid()` | Primary identifier. |
+| `title` | `text` | Yes | None | Public Story title. |
+| `slug` | `text` | Yes | None | Stable, unique URL identifier. |
+| `summary` | `text` | Yes | None | Short Story summary. |
+| `body` | `text` | Yes | None | Main Story content. |
+| `status` | `text` | Yes | `draft` | Either `draft` or `published`. |
+| `cover_image_url` | `text` | No | `null` | Optional cover-image reference; no upload system is implemented. |
+| `published_at` | `timestamptz` | No for drafts; required for published Stories | `null` | Publication time and public-visibility boundary. |
+| `created_at` | `timestamptz` | Yes | `now()` | Creation time. |
+| `updated_at` | `timestamptz` | Yes | `now()` | Last update time, maintained by a trigger. |
+
+### Keys, Constraints, and Indexes
+
+- Primary key: `id`.
+- Unique constraint: `stories_slug_key` on `slug`.
+- Check constraint: `stories_status_check` permits only `draft` and
+  `published`.
+- Check constraint: `stories_published_at_check` requires `published_at` for a
+  published Story.
+- No foreign keys originate from this table.
+- Indexes: the primary-key index, unique slug index, `stories_status_idx`,
+  `stories_published_at_idx`, and the partial `stories_published_lookup_idx` on
+  publication time for published Stories.
+
+### Deletion and Public Read Behavior
+
+Deleting a Story cascades to its rows in all three relationship tables. It does
+not delete connected Places, Themes, or Sources.
+
+Anonymous and ordinary authenticated public clients may select only rows whose
+status is `published` and whose `published_at` is not in the future. Draft and
+future-published Stories are not publicly readable. Public clients have no
+insert, update, or delete permission.
 
 ---
 
-## 15. MVP Vision
+## 5. `places`
 
-The first working version of FoodForFun Atlas does not need to contain every planned feature.
+### Purpose
 
-The MVP only needs to prove that the following process works:
+Stores geographic entities connected to Stories, including hierarchical
+relationships between Places.
+
+### Columns
+
+| Column | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | Yes | `gen_random_uuid()` | Primary identifier. |
+| `name` | `text` | Yes | None | Place name. |
+| `slug` | `text` | Yes | None | Unique public identifier. |
+| `place_type` | `text` | No | `null` | Optional classification such as city or neighborhood. |
+| `parent_place_id` | `uuid` | No | `null` | Optional reference to a parent Place. |
+| `country_code` | `text` | No | `null` | Optional two-letter uppercase country code. |
+| `latitude` | `numeric(9,6)` | No | `null` | Optional latitude from -90 through 90. |
+| `longitude` | `numeric(9,6)` | No | `null` | Optional longitude from -180 through 180. |
+| `location_precision` | `text` | No | `null` | One of `exact`, `neighborhood`, `city`, `region`, or `hidden`. |
+| `is_verified` | `boolean` | Yes | `false` | Whether the Place information has been verified. |
+| `created_at` | `timestamptz` | Yes | `now()` | Creation time. |
+| `updated_at` | `timestamptz` | Yes | `now()` | Last update time, maintained by a trigger. |
+
+### Keys, Constraints, and Indexes
+
+- Primary key: `id`.
+- Foreign key: `parent_place_id` references `places.id`.
+- Unique constraint: `places_slug_key` on `slug`.
+- Check constraints validate country-code format, coordinate ranges, and the
+  allowed location-precision values.
+- `places_coordinates_precision_check` requires latitude and longitude to be
+  both absent or both present. Coordinates may be stored only for `exact`,
+  `neighborhood`, `city`, or `region` precision. A Place with `hidden` precision
+  cannot store coordinates.
+- Indexes: the primary-key index, unique slug index, and
+  `places_parent_place_id_idx`.
+
+### Deletion and Public Read Behavior
+
+Deleting a parent Place sets its children's `parent_place_id` to `null`.
+Deleting a Place cascades to matching `story_places` rows but does not delete
+Stories.
+
+All Place rows are selectable by anonymous and authenticated public clients.
+Public clients have no insert, update, or delete permission.
+
+---
+
+## 6. `themes`
+
+### Purpose
+
+Stores reusable editorial concepts used to group and connect Stories.
+
+### Columns
+
+| Column | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | Yes | `gen_random_uuid()` | Primary identifier. |
+| `name` | `text` | Yes | None | Theme name. |
+| `slug` | `text` | Yes | None | Unique public identifier. |
+| `description` | `text` | No | `null` | Optional explanation of the Theme. |
+| `theme_group` | `text` | No | `null` | Optional editorial grouping. |
+| `is_active` | `boolean` | Yes | `true` | Whether the Theme remains active for editorial use. |
+| `created_at` | `timestamptz` | Yes | `now()` | Creation time. |
+| `updated_at` | `timestamptz` | Yes | `now()` | Last update time, maintained by a trigger. |
+
+### Keys, Constraints, and Indexes
+
+- Primary key: `id`.
+- Unique constraint: `themes_slug_key` on `slug`.
+- No foreign keys originate from this table.
+- Indexes: the primary-key index and unique slug index.
+
+### Deletion and Public Read Behavior
+
+Deleting a Theme cascades to matching `story_themes` rows but does not delete
+Stories.
+
+Only active Theme rows (`is_active = true`) are selectable by anonymous and
+authenticated public clients. Inactive Themes are not publicly readable. Public
+clients have no insert, update, or delete permission.
+
+---
+
+## 7. `sources`
+
+### Purpose
+
+Stores original evidence and supporting material separately from edited Story
+content.
+
+### Columns
+
+| Column | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | Yes | `gen_random_uuid()` | Primary identifier. |
+| `source_type` | `text` | Yes | None | Source classification. |
+| `original_title` | `text` | No | `null` | Original source title. |
+| `source_url` | `text` | No | `null` | Original source URL. |
+| `external_id` | `text` | No | `null` | Identifier from an external platform. |
+| `publisher` | `text` | No | `null` | Original publisher or channel. |
+| `original_published_at` | `timestamptz` | No | `null` | Original publication time. |
+| `original_language` | `text` | No | `null` | Original language identifier. |
+| `original_description` | `text` | No | `null` | Description supplied by the original source. |
+| `raw_transcript` | `text` | No | `null` | Original transcript text. |
+| `cleaned_transcript` | `text` | No | `null` | Separately preserved cleaned transcript. |
+| `transcript_quality` | `text` | No | `null` | Optional transcript-quality label. |
+| `processing_status` | `text` | Yes | `pending` | Current source-processing label. |
+| `availability_status` | `text` | No | `null` | Optional source-availability label. |
+| `rights_note` | `text` | No | `null` | Optional rights or usage note. |
+| `collected_at` | `timestamptz` | Yes | `now()` | Time the Source was collected. |
+| `created_at` | `timestamptz` | Yes | `now()` | Record creation time. |
+| `updated_at` | `timestamptz` | Yes | `now()` | Last update time, maintained by a trigger. |
+
+### Keys, Constraints, and Indexes
+
+- Primary key: `id`.
+- No foreign keys originate from this table.
+- No unique constraint is defined for URL or external identifier in the initial
+  schema.
+- The primary-key index is the only index on this table.
+
+### Deletion and Public Read Behavior
+
+Deleting a Source cascades to matching `story_sources` rows but does not delete
+Stories.
+
+A Source row is selectable by anonymous and authenticated public clients only
+when it is connected through `story_sources` to at least one Story that is
+published and has reached its `published_at` time. A Source connected only to
+draft or future-published Stories is not publicly readable.
+
+Public clients may select only these Source metadata columns:
 
 ```text
-YouTube video or source
-          ↓
-Source record
-          ↓
-Story draft
-          ↓
-Human editing
-          ↓
-People, place, food, and theme connections
-          ↓
-Published Atlas Story
-          ↓
-Search and map discovery
+id
+source_type
+original_title
+source_url
+external_id
+publisher
+original_published_at
+original_language
+original_description
+availability_status
 ```
 
-A successful MVP should allow the FoodForFun team to:
-
-1. Add a source.
-2. preserve its transcript and information;
-3. create an edited Story;
-4. connect the Story to structured Atlas data;
-5. review and publish it;
-6. and allow visitors to continue exploring related content.
+The transcript, processing, rights, collection, and record-timestamp columns do
+not have public `SELECT` grants. Public clients must explicitly request only the
+permitted metadata columns and cannot use `select *` against `sources`. Public
+clients have no insert, update, or delete permission.
 
 ---
 
-## 16. Measures of Success
+## 8. `story_places`
 
-FoodForFun Atlas should not be judged only by traffic or follower numbers.
+### Purpose
 
-Early indicators of success include:
+Joins Stories and Places to implement their many-to-many relationship.
 
-* stories can be entered and published consistently;
-* original source information is preserved;
-* related stories can be connected accurately;
-* visitors can move between stories, places, foods, and themes;
-* editors can understand and maintain the system;
-* AI reduces repetitive work without reducing accuracy;
-* the platform remains stable and affordable;
-* and the project can continue growing without rebuilding its foundation.
+### Columns
 
-Long-term success means Atlas becomes a trusted, evolving record of people and everyday life connected through food.
+| Column | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `story_id` | `uuid` | Yes | None | References the connected Story. |
+| `place_id` | `uuid` | Yes | None | References the connected Place. |
+| `created_at` | `timestamptz` | Yes | `now()` | Relationship creation time. |
+
+### Keys, Constraints, and Indexes
+
+- Composite primary key: (`story_id`, `place_id`), preventing duplicate links.
+- Foreign key: `story_id` references `stories.id` with `ON DELETE CASCADE`.
+- Foreign key: `place_id` references `places.id` with `ON DELETE CASCADE`.
+- No optional columns and no separate unique constraint.
+- Indexes: the composite primary-key index and `story_places_place_id_idx` for
+  reverse Place lookups.
+
+### Deletion and Public Read Behavior
+
+The relationship row is deleted when either referenced Story or Place is
+deleted. Anonymous and authenticated public clients may read a relationship row
+only when its connected Story has published status and has reached its
+`published_at` time. Public clients have no insert, update, or delete permission.
 
 ---
 
-## 17. Decision Principle
+## 9. `story_themes`
 
-When there is uncertainty about a product, editorial, or technical decision, use the following question:
+### Purpose
 
-> Does this help people better understand the person, place, community, or life behind the food?
+Joins Stories and Themes to implement their many-to-many relationship.
 
-If the answer is no, the feature or content may not belong in FoodForFun Atlas.
+### Columns
+
+| Column | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `story_id` | `uuid` | Yes | None | References the connected Story. |
+| `theme_id` | `uuid` | Yes | None | References the connected Theme. |
+| `created_at` | `timestamptz` | Yes | `now()` | Relationship creation time. |
+
+### Keys, Constraints, and Indexes
+
+- Composite primary key: (`story_id`, `theme_id`), preventing duplicate links.
+- Foreign key: `story_id` references `stories.id` with `ON DELETE CASCADE`.
+- Foreign key: `theme_id` references `themes.id` with `ON DELETE CASCADE`.
+- No optional columns and no separate unique constraint.
+- Indexes: the composite primary-key index and `story_themes_theme_id_idx` for
+  reverse Theme lookups.
+
+### Deletion and Public Read Behavior
+
+The relationship row is deleted when either referenced Story or Theme is
+deleted. Anonymous and authenticated public clients may read a relationship row
+only when its connected Story has published status and has reached its
+`published_at` time. Public clients have no insert, update, or delete permission.
 
 ---
 
-## 18. Core Statement
+## 10. `story_sources`
 
-FoodForFun Atlas begins with food, but it is ultimately about people.
+### Purpose
 
-It records ordinary work, small businesses, local communities, and the ways people build a life around food.
+Joins Stories and Sources to implement their many-to-many relationship.
 
-The platform should remain calm, honest, connected, and human.
+### Columns
 
-> **Through food, understand people.
-> Through people, understand the world.**
+| Column | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `story_id` | `uuid` | Yes | None | References the connected Story. |
+| `source_id` | `uuid` | Yes | None | References the connected Source. |
+| `created_at` | `timestamptz` | Yes | `now()` | Relationship creation time. |
+
+### Keys, Constraints, and Indexes
+
+- Composite primary key: (`story_id`, `source_id`), preventing duplicate links.
+- Foreign key: `story_id` references `stories.id` with `ON DELETE CASCADE`.
+- Foreign key: `source_id` references `sources.id` with `ON DELETE CASCADE`.
+- No optional columns and no separate unique constraint.
+- Indexes: the composite primary-key index and `story_sources_source_id_idx` for
+  reverse Source lookups.
+
+### Deletion and Public Read Behavior
+
+The relationship row is deleted when either referenced Story or Source is
+deleted. Anonymous and authenticated public clients may read a relationship row
+only when its connected Story has published status and has reached its
+`published_at` time. Public clients have no insert, update, or delete permission.
+
+---
+
+## 11. Updated Timestamps
+
+The reusable trigger function `public.set_updated_at()` sets `updated_at` to the
+current database time before an update. It is applied only to the four entity
+tables that contain an `updated_at` column:
+
+- `stories`
+- `places`
+- `themes`
+- `sources`
+
+The function is a security-invoker function with an explicitly empty
+`search_path`. Public execution permission is revoked.
+
+---
+
+## 12. Row Level Security and Grants
+
+Row Level Security is enabled on all seven tables. The `anon` and
+`authenticated` roles have their table privileges explicitly revoked before the
+intended read grants are applied. Most public tables receive table-level
+`SELECT`; `sources` receives column-level `SELECT` only for approved public
+metadata.
+
+The public read model is:
+
+- `stories`: only published rows whose `published_at` is not in the future are
+  readable;
+- `places`: all rows are readable;
+- `themes`: only active rows are readable;
+- `sources`: only approved metadata columns are readable, and only for Sources
+  connected to at least one currently published Story;
+- `story_places`: readable only when the connected Story is currently published;
+- `story_themes`: readable only when the connected Story is currently published;
+  and
+- `story_sources`: readable only when the connected Story is currently published.
+
+There are no public insert, update, or delete policies. Anonymous and ordinary
+authenticated clients therefore cannot create, modify, or delete rows. They
+also cannot read draft or future-published Stories, relationship rows for those
+Stories, inactive Themes, or Sources connected only to non-public Stories.
+
+Administrative access is not defined by this migration. Supabase's privileged
+service role is outside the public-client policy model and must never be exposed
+to browser clients.
+
+---
+
+## 13. Current Limitations
+
+The initial schema intentionally does not include:
+
+- an application authentication schema;
+- an administrator or editor authorization model;
+- a storage bucket;
+- image-upload behavior;
+- seed content;
+- a soft-delete field;
+- a full editorial workflow engine;
+- People, Organizations, Foods, or Media tables;
+- search-specific database structures; or
+- AI-specific fields or vector storage.
+
+`cover_image_url` is only an optional text reference. It does not create a
+storage bucket or implement uploads.
+
+These limitations keep the first migration focused on validating the minimum
+Source-to-Story data relationships and public publication boundary.
