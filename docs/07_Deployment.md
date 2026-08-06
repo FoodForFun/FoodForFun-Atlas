@@ -88,6 +88,7 @@ After a merge, verify that the resulting Production Deployment succeeds and that
 
 ## Environment Variables and Secrets
 
+- The public Story pages require `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in Local, Preview, and Production environments.
 - Do not commit `.env.local`.
 - Do not commit passwords, API keys, tokens, or credentials.
 - Do not add empty placeholder variables to Vercel.
@@ -113,10 +114,10 @@ Deployment checks should be recorded alongside the local validation commands and
 
 ## Current Limitations
 
-- The foundation homepage is currently minimal.
-- No database is connected.
+- The public homepage and `/stories/[slug]` route have read-only Supabase Story access.
+- Story queries rely on Row Level Security and use only the publishable public credential.
+- Database writes and Story administration are not implemented.
 - No authentication is configured.
-- No Supabase environment variables are configured.
 - No custom domain is configured.
 - No analytics or monitoring service is configured.
 - Deployment success does not replace application, security, access-control, or content review.

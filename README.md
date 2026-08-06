@@ -34,7 +34,20 @@ Our mission is to preserve culinary knowledge, connect people across cultures, a
 
 ## Local environment setup
 
-Copy `.env.example` to `.env.local` for local development. Add local values when external services are configured, and never commit `.env.local`.
+Copy `.env.example` to `.env.local` for local development and configure both public Supabase variables:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+```
+
+Never commit `.env.local` or use a service-role or administrative credential for public Story access.
+
+## Public Stories
+
+The server-rendered homepage reads the published Story list from Supabase, and `/stories/[slug]` displays one publicly readable Story. These read-only queries select only the fields needed by each page and rely on database Row Level Security to exclude drafts and future publications.
+
+Database writes, authentication, and administration are not implemented yet.
 
 ## Project Documentation
 
