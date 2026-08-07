@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -69,6 +70,25 @@ type StoryPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export async function generateMetadata({
+  params,
+}: StoryPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const storyResult = await getPublicStoryBySlug(slug);
+
+  if (storyResult.error || !storyResult.data) {
+    return {
+      title: "Story | FoodForFun Atlas",
+      description: "Read published documentary stories from FoodForFun Atlas.",
+    };
+  }
+
+  return {
+    title: `${storyResult.data.title} | FoodForFun Atlas`,
+    description: storyResult.data.summary,
+  };
+}
+
 export default async function StoryPage({ params }: StoryPageProps) {
   const { slug } = await params;
   const storyResult = await getPublicStoryBySlug(slug);
@@ -86,7 +106,7 @@ export default async function StoryPage({ params }: StoryPageProps) {
   return (
     <main className="story-page">
       <nav className="back-nav" aria-label="Breadcrumb">
-        <Link href="/">
+        <Link href="/stories">
           <span aria-hidden="true">←</span> Back to all Stories
         </Link>
       </nav>
@@ -252,8 +272,8 @@ export default async function StoryPage({ params }: StoryPageProps) {
       </article>
 
       <footer className="story-footer">
-        <Link href="/">
-          <span aria-hidden="true">←</span> Return to FoodForFun Atlas
+        <Link href="/stories">
+          <span aria-hidden="true">←</span> Browse all Stories
         </Link>
       </footer>
     </main>
