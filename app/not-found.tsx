@@ -5,9 +5,9 @@ export default function NotFound() {
     <main className="not-found-page">
       <section className="not-found-content" aria-labelledby="not-found-title">
         <p className="eyebrow">FoodForFun Atlas</p>
-        <h1 id="not-found-title">Story not found</h1>
+        <h1 id="not-found-title">Page not found</h1>
         <p className="not-found-message">
-          This Story is not available. It may have moved or may not be part of
+          This page is not available. It may have moved or may not be part of
           the public Atlas.
         </p>
         <Link className="not-found-link" href="/">
