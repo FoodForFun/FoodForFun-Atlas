@@ -45,7 +45,7 @@ Never commit `.env.local` or use a service-role or administrative credential for
 
 ## Public Stories
 
-The server-rendered homepage reads the published Story list from Supabase, and `/stories/[slug]` displays one publicly readable Story. These read-only queries select only the fields needed by each page and rely on database Row Level Security to exclude drafts and future publications.
+The server-rendered homepage reads the published Story list from Supabase, and `/stories/[slug]` displays one publicly readable Story with its related Places, active Themes, and public Source metadata. These read-only queries select only the fields needed by each page and rely on database Row Level Security and column grants to exclude drafts, future publications, inactive Themes, Source transcripts, and internal Source fields.
 
 Database writes, authentication, and administration are not implemented yet.
 
