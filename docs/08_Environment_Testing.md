@@ -39,6 +39,9 @@ Confirm that:
 - the development server starts;
 - the homepage loads successfully;
 - the page displays `FoodForFun Atlas`;
+- public search handles normal results, no results, empty and invalid queries, and refreshable query URLs;
+- public search groups Story, Place, and Theme results and remains usable at 390px width;
+- missing routes display the public not-found state;
 - lint passes;
 - the production build passes;
 - no relevant browser or server errors appear; and
@@ -93,7 +96,6 @@ The current foundation verification does not yet cover:
 - administrative access;
 - Story creation or editing;
 - image uploads;
-- search;
 - maps;
 - mobile interaction;
 - accessibility compliance;

@@ -4,6 +4,7 @@ const navigationItems = [
   { href: "/stories", label: "Stories" },
   { href: "/places", label: "Places" },
   { href: "/themes", label: "Themes" },
+  { href: "/search", label: "Search" },
 ];
 
 export function SiteNavigation() {

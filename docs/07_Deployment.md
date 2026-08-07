@@ -114,8 +114,8 @@ Deployment checks should be recorded alongside the local validation commands and
 
 ## Current Limitations
 
-- The public homepage and `/stories/[slug]` route have read-only Supabase Story access.
-- Story queries rely on Row Level Security and use only the publishable public credential.
+- The public homepage, Story routes, directories, entity pages, and `/search` route have read-only Supabase access.
+- Public queries rely on Row Level Security and use only the publishable public credential.
 - Database writes and Story administration are not implemented.
 - No authentication is configured.
 - No custom domain is configured.
