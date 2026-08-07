@@ -58,6 +58,7 @@ Database writes, authentication, and administration are not implemented yet.
 - [MVP Scope](docs/02_MVP_Scope.md)
 - [Data Model](docs/03_Data_Model.md)
 - [Admin Workflow](docs/04_Admin_Workflow.md)
+- [Admin and Authentication Architecture Proposal](docs/09_Admin_Authentication_Architecture.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
