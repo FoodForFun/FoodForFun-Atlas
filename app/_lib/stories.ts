@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import {
   createServerSupabaseClient,
   SupabaseConfigurationError,
@@ -93,7 +95,7 @@ export async function getPublicStories(): Promise<
   }
 }
 
-export async function getPublicStoryBySlug(
+async function getPublicStoryBySlugUncached(
   slug: string,
 ): Promise<StoryQueryResult<PublicStory | null>> {
   try {
@@ -189,3 +191,5 @@ export async function getPublicStoryBySlug(
     return { data: null, error: true };
   }
 }
+
+export const getPublicStoryBySlug = cache(getPublicStoryBySlugUncached);
