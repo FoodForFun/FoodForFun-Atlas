@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import {
   createServerSupabaseClient,
   SupabaseConfigurationError,
@@ -12,6 +14,11 @@ export type PublicStoryListItem = {
   summary: string;
   cover_image_url: string | null;
   published_at: string;
+};
+
+export type PublicStoryPage = {
+  stories: PublicStoryListItem[];
+  total: number;
 };
 
 export type PublicPlace = {
@@ -93,7 +100,58 @@ export async function getPublicStories(): Promise<
   }
 }
 
-export async function getPublicStoryBySlug(
+export async function getPublicStoryPage(
+  page: number,
+  pageSize: number,
+): Promise<StoryQueryResult<PublicStoryPage>> {
+  const firstRow = (page - 1) * pageSize;
+  const lastRow = firstRow + pageSize - 1;
+
+  try {
+    const supabase = createServerSupabaseClient();
+    const { count, error: countError } = await supabase
+      .from("stories")
+      .select("id", { count: "exact", head: true });
+
+    if (countError) {
+      logStoryReadFailure("Public Story archive count query", countError);
+      return { data: null, error: true };
+    }
+
+    const total = count ?? 0;
+
+    if (firstRow >= total) {
+      return {
+        data: { stories: [], total },
+        error: false,
+      };
+    }
+
+    const { data, error } = await supabase
+      .from("stories")
+      .select("id, title, slug, summary, cover_image_url, published_at")
+      .order("published_at", { ascending: false })
+      .range(firstRow, lastRow);
+
+    if (error) {
+      logStoryReadFailure("Public Story archive query", error);
+      return { data: null, error: true };
+    }
+
+    return {
+      data: {
+        stories: (data ?? []) as PublicStoryListItem[],
+        total,
+      },
+      error: false,
+    };
+  } catch (error) {
+    logStoryReadFailure("Public Story archive query", error);
+    return { data: null, error: true };
+  }
+}
+
+async function getPublicStoryBySlugUncached(
   slug: string,
 ): Promise<StoryQueryResult<PublicStory | null>> {
   try {
@@ -189,3 +247,5 @@ export async function getPublicStoryBySlug(
     return { data: null, error: true };
   }
 }
+
+export const getPublicStoryBySlug = cache(getPublicStoryBySlugUncached);
