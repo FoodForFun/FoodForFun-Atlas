@@ -161,7 +161,11 @@ export default async function StoryPage({ params }: StoryPageProps) {
                   </h3>
                   <ul className="theme-list">
                     {story.themes.map((theme) => (
-                      <li key={theme.id}>{theme.name}</li>
+                      <li key={theme.id}>
+                        <Link href={`/themes/${theme.slug}`}>
+                          {theme.name}
+                        </Link>
+                      </li>
                     ))}
                   </ul>
                 </section>
