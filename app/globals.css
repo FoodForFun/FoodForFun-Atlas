@@ -32,6 +32,12 @@ a:hover {
   color: var(--accent);
 }
 
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 0.25rem;
+}
+
 .site-shell,
 .story-page,
 .theme-page,
@@ -596,6 +602,63 @@ time {
   place-items: center start;
 }
 
+.error-page {
+  display: grid;
+  width: min(100%, 76rem);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 4.5rem);
+  place-items: center start;
+}
+
+.error-content {
+  max-width: 42rem;
+}
+
+.error-content h1 {
+  max-width: 12ch;
+  font-size: clamp(3rem, 8vw, 6rem);
+}
+
+.error-message {
+  max-width: 34rem;
+  margin: 2rem 0 0;
+  color: var(--ink-muted);
+  font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+  line-height: 1.65;
+}
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 2.5rem;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.error-actions button,
+.error-actions a {
+  min-height: 2.75rem;
+  padding: 0.8rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.error-actions button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.error-actions a {
+  display: inline-flex;
+  align-items: center;
+}
+
 .not-found-content {
   max-width: 42rem;
 }
@@ -648,6 +711,7 @@ time {
 
   .story-page,
   .site-shell,
+  .error-page,
   .theme-page,
   .place-page,
   .not-found-page {
