@@ -143,7 +143,11 @@ export default async function StoryPage({ params }: StoryPageProps) {
 
                       return (
                         <li key={place.id}>
-                          <strong>{place.name}</strong>
+                          <strong>
+                            <Link href={`/places/${place.slug}`}>
+                              {place.name}
+                            </Link>
+                          </strong>
                           {placeDetails.length > 0 ? (
                             <span>{placeDetails.join(" · ")}</span>
                           ) : null}
