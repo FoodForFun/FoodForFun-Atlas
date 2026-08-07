@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+
+import { SiteNavigation } from "@/app/_components/site-navigation";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +16,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
+        <SiteNavigation />
+        <div id="main-content" tabIndex={-1}>
+          {children}
+        </div>
+      </body>
     </html>
   );
 }
