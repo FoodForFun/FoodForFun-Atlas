@@ -24,6 +24,10 @@ export type PublicPlaceSummary = {
   country_code: string | null;
 };
 
+export type PublicPlaceDirectoryItem = PublicPlaceSummary & {
+  story_count: number;
+};
+
 export type PublicPlace = PublicPlaceSummary & {
   parent: PublicPlaceSummary | null;
   stories: PublicPlaceStory[];
@@ -36,17 +40,72 @@ type PublicPlaceRow = PublicPlaceSummary & {
   }>;
 };
 
+type PublicPlaceDirectoryRow = PublicPlaceSummary & {
+  story_places: Array<{
+    story: { id: string } | Array<{ id: string }> | null;
+  }>;
+};
+
 type PlaceQueryResult =
   | { data: PublicPlace | null; error: false }
   | { data: null; error: true };
 
-function logPlaceReadFailure(error: unknown) {
+type PlaceDirectoryQueryResult =
+  | { data: PublicPlaceDirectoryItem[]; error: false }
+  | { data: null; error: true };
+
+function logPlaceReadFailure(operation: string, error: unknown) {
   if (error instanceof SupabaseConfigurationError) {
     console.error(`[places] ${error.message}`);
     return;
   }
 
-  console.error("[places] Public Place detail query failed.");
+  console.error(`[places] ${operation} failed.`);
+}
+
+export async function getPublicPlaceDirectory(): Promise<PlaceDirectoryQueryResult> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("places")
+      .select(
+        `
+          id,
+          name,
+          slug,
+          place_type,
+          country_code,
+          story_places (
+            story:stories (id)
+          )
+        `,
+      )
+      .order("name", { ascending: true });
+
+    if (error) {
+      logPlaceReadFailure("Public Place directory query", error);
+      return { data: null, error: true };
+    }
+
+    return {
+      data: ((data ?? []) as PublicPlaceDirectoryRow[])
+        .map((place) => ({
+          id: place.id,
+          name: place.name,
+          slug: place.slug,
+          place_type: place.place_type,
+          country_code: place.country_code,
+          story_count: place.story_places.flatMap(({ story }) =>
+            Array.isArray(story) ? story : story ? [story] : [],
+          ).length,
+        }))
+        .filter((place) => place.story_count > 0),
+      error: false,
+    };
+  } catch (error) {
+    logPlaceReadFailure("Public Place directory query", error);
+    return { data: null, error: true };
+  }
 }
 
 export const getPublicPlaceBySlug = cache(
@@ -79,7 +138,7 @@ export const getPublicPlaceBySlug = cache(
         .maybeSingle();
 
       if (error) {
-        logPlaceReadFailure(error);
+        logPlaceReadFailure("Public Place detail query", error);
         return { data: null, error: true };
       }
 
@@ -98,7 +157,7 @@ export const getPublicPlaceBySlug = cache(
           .maybeSingle();
 
         if (parentError) {
-          logPlaceReadFailure(parentError);
+          logPlaceReadFailure("Public parent Place query", parentError);
           return { data: null, error: true };
         }
 
@@ -124,7 +183,7 @@ export const getPublicPlaceBySlug = cache(
         error: false,
       };
     } catch (error) {
-      logPlaceReadFailure(error);
+      logPlaceReadFailure("Public Place detail query", error);
       return { data: null, error: true };
     }
   },

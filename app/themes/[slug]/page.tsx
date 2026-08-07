@@ -44,7 +44,7 @@ export default async function ThemePage({ params }: ThemePageProps) {
     return (
       <main className="site-shell theme-page">
         <nav className="back-nav" aria-label="Breadcrumb">
-          <Link href="/">← FoodForFun Atlas</Link>
+          <Link href="/themes">← All Themes</Link>
         </nav>
         <div className="notice" role="status">
           <p>Theme information is temporarily unavailable.</p>
@@ -64,7 +64,7 @@ export default async function ThemePage({ params }: ThemePageProps) {
   return (
     <main className="site-shell theme-page">
       <nav className="back-nav" aria-label="Breadcrumb">
-        <Link href="/">← FoodForFun Atlas</Link>
+        <Link href="/themes">← All Themes</Link>
       </nav>
 
       <header className="theme-header">
@@ -84,7 +84,9 @@ export default async function ThemePage({ params }: ThemePageProps) {
           <h2 id="places-heading">Represented Places</h2>
           <ul>
             {theme.places.map((place) => (
-              <li key={place.id}>{place.name}</li>
+              <li key={place.id}>
+                <Link href={`/places/${place.slug}`}>{place.name}</Link>
+              </li>
             ))}
           </ul>
         </section>

@@ -75,31 +75,6 @@ function logStoryReadFailure(operation: string, error: unknown) {
   console.error(`[stories] ${operation} failed.`);
 }
 
-export async function getPublicStories(): Promise<
-  StoryQueryResult<PublicStoryListItem[]>
-> {
-  try {
-    const supabase = createServerSupabaseClient();
-    const { data, error } = await supabase
-      .from("stories")
-      .select("id, title, slug, summary, cover_image_url, published_at")
-      .order("published_at", { ascending: false });
-
-    if (error) {
-      logStoryReadFailure("Public Story list query", error);
-      return { data: null, error: true };
-    }
-
-    return {
-      data: (data ?? []) as PublicStoryListItem[],
-      error: false,
-    };
-  } catch (error) {
-    logStoryReadFailure("Public Story list query", error);
-    return { data: null, error: true };
-  }
-}
-
 export async function getPublicStoryPage(
   page: number,
   pageSize: number,

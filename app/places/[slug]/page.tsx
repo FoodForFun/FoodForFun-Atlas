@@ -50,7 +50,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
     return (
       <main className="site-shell place-page">
         <nav className="back-nav" aria-label="Breadcrumb">
-          <Link href="/">← FoodForFun Atlas</Link>
+          <Link href="/places">← All Places</Link>
         </nav>
         <div className="notice" role="status">
           <p>Place information is temporarily unavailable.</p>
@@ -73,7 +73,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
   return (
     <main className="site-shell place-page">
       <nav className="back-nav" aria-label="Breadcrumb">
-        <Link href="/">← FoodForFun Atlas</Link>
+        <Link href="/places">← All Places</Link>
       </nav>
 
       <header className="place-header">

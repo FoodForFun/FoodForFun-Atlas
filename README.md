@@ -43,9 +43,11 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 Never commit `.env.local` or use a service-role or administrative credential for public Story access.
 
-## Public Stories
+## Public Atlas
 
-The server-rendered homepage reads the published Story list from Supabase, and `/stories/[slug]` displays one publicly readable Story with its related Places, active Themes, and public Source metadata. These read-only queries select only the fields needed by each page and rely on database Row Level Security and column grants to exclude drafts, future publications, inactive Themes, Source transcripts, and internal Source fields.
+The server-rendered homepage presents a bounded selection of published Stories and entry points derived from their Place and Theme relationships. Global navigation connects the homepage with the paginated `/stories` archive and the published-content directories at `/places` and `/themes`.
+
+`/stories/[slug]` displays one publicly readable Story with its related Places, active Themes, and public Source metadata. Place and Theme detail pages connect visitors back to related published Stories. These read-only queries select only the fields needed by each page and rely on database Row Level Security and column grants to exclude drafts, future publications, inactive Themes, Source transcripts, and internal Source fields.
 
 Database writes, authentication, and administration are not implemented yet.
 

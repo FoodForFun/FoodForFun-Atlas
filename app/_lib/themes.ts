@@ -19,6 +19,7 @@ export type PublicThemeStory = {
 export type PublicThemePlace = {
   id: string;
   name: string;
+  slug: string;
 };
 
 export type PublicTheme = {
@@ -28,6 +29,14 @@ export type PublicTheme = {
   description: string | null;
   places: PublicThemePlace[];
   stories: PublicThemeStory[];
+};
+
+export type PublicThemeDirectoryItem = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  story_count: number;
 };
 
 type PublicThemeStoryRow = PublicThemeStory & {
@@ -46,17 +55,74 @@ type PublicThemeRow = {
   }>;
 };
 
+type PublicThemeDirectoryRow = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  story_themes: Array<{
+    story: { id: string } | Array<{ id: string }> | null;
+  }>;
+};
+
 type ThemeQueryResult =
   | { data: PublicTheme | null; error: false }
   | { data: null; error: true };
 
-function logThemeReadFailure(error: unknown) {
+type ThemeDirectoryQueryResult =
+  | { data: PublicThemeDirectoryItem[]; error: false }
+  | { data: null; error: true };
+
+function logThemeReadFailure(operation: string, error: unknown) {
   if (error instanceof SupabaseConfigurationError) {
     console.error(`[themes] ${error.message}`);
     return;
   }
 
-  console.error("[themes] Public Theme detail query failed.");
+  console.error(`[themes] ${operation} failed.`);
+}
+
+export async function getPublicThemeDirectory(): Promise<ThemeDirectoryQueryResult> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("themes")
+      .select(
+        `
+          id,
+          name,
+          slug,
+          description,
+          story_themes (
+            story:stories (id)
+          )
+        `,
+      )
+      .order("name", { ascending: true });
+
+    if (error) {
+      logThemeReadFailure("Public Theme directory query", error);
+      return { data: null, error: true };
+    }
+
+    return {
+      data: ((data ?? []) as PublicThemeDirectoryRow[])
+        .map((theme) => ({
+          id: theme.id,
+          name: theme.name,
+          slug: theme.slug,
+          description: theme.description,
+          story_count: theme.story_themes.flatMap(({ story }) =>
+            Array.isArray(story) ? story : story ? [story] : [],
+          ).length,
+        }))
+        .filter((theme) => theme.story_count > 0),
+      error: false,
+    };
+  } catch (error) {
+    logThemeReadFailure("Public Theme directory query", error);
+    return { data: null, error: true };
+  }
 }
 
 export const getPublicThemeBySlug = cache(
@@ -82,7 +148,8 @@ export const getPublicThemeBySlug = cache(
                 story_places (
                   place:places (
                     id,
-                    name
+                    name,
+                    slug
                   )
                 )
               )
@@ -93,7 +160,7 @@ export const getPublicThemeBySlug = cache(
         .maybeSingle();
 
       if (error) {
-        logThemeReadFailure(error);
+        logThemeReadFailure("Public Theme detail query", error);
         return { data: null, error: true };
       }
 
@@ -140,7 +207,7 @@ export const getPublicThemeBySlug = cache(
         error: false,
       };
     } catch (error) {
-      logThemeReadFailure(error);
+      logThemeReadFailure("Public Theme detail query", error);
       return { data: null, error: true };
     }
   },
