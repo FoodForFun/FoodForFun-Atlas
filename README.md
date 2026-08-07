@@ -45,9 +45,9 @@ Never commit `.env.local` or use a service-role or administrative credential for
 
 ## Public Atlas
 
-The server-rendered homepage presents a bounded selection of published Stories and entry points derived from their Place and Theme relationships. Global navigation connects the homepage with the paginated `/stories` archive and the published-content directories at `/places` and `/themes`.
+The server-rendered homepage presents a bounded selection of published Stories and entry points derived from their Place and Theme relationships. Global navigation connects the homepage with the paginated `/stories` archive, the published-content directories at `/places` and `/themes`, and the linkable public search at `/search?q=...`.
 
-`/stories/[slug]` displays one publicly readable Story with its related Places, active Themes, and public Source metadata. Place and Theme detail pages connect visitors back to related published Stories. These read-only queries select only the fields needed by each page and rely on database Row Level Security and column grants to exclude drafts, future publications, inactive Themes, Source transcripts, and internal Source fields.
+`/stories/[slug]` displays one publicly readable Story with its related Places, active Themes, and public Source metadata. Place and Theme detail pages connect visitors back to related published Stories. Search covers Story titles and summaries, Place names, and Theme names, with bounded groups for each public record type. These read-only queries select only the fields needed by each page and rely on database Row Level Security and column grants to exclude drafts, future publications, inactive Themes, Source transcripts, and internal Source fields.
 
 Database writes, authentication, and administration are not implemented yet.
 
