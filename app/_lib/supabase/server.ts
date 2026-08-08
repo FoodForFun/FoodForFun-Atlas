@@ -2,23 +2,17 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
-export class SupabaseConfigurationError extends Error {
-  constructor() {
-    super("Required Supabase configuration is missing.");
-    this.name = "SupabaseConfigurationError";
-  }
-}
+import {
+  getSupabasePublicConfig,
+  SupabaseConfigurationError,
+} from "@/app/_lib/supabase/config";
+
+export { SupabaseConfigurationError };
 
 export function createServerSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabasePublishableKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const { publishableKey, url } = getSupabasePublicConfig();
 
-  if (!supabaseUrl || !supabasePublishableKey) {
-    throw new SupabaseConfigurationError();
-  }
-
-  return createClient(supabaseUrl, supabasePublishableKey, {
+  return createClient(url, publishableKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

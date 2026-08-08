@@ -34,11 +34,15 @@ Our mission is to preserve culinary knowledge, connect people across cultures, a
 
 ## Local environment setup
 
-Copy `.env.example` to `.env.local` for local development and configure both public Supabase variables:
+Copy `.env.example` to `.env.local` for local development and configure the two
+public Supabase variables. The site URL is optional locally and should be the
+canonical HTTPS origin when Auth email flows are enabled in a deployed
+environment:
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+NEXT_PUBLIC_SITE_URL
 ```
 
 Never commit `.env.local` or use a service-role or administrative credential for public Story access.
@@ -49,11 +53,12 @@ The server-rendered homepage presents a bounded selection of published Stories a
 
 `/stories/[slug]` displays one publicly readable Story with its related Places, active Themes, and public Source metadata. Place and Theme detail pages connect visitors back to related published Stories. Search covers Story titles and summaries, Place names, and Theme names, with bounded groups for each public record type. These read-only queries select only the fields needed by each page and rely on database Row Level Security and column grants to exclude drafts, future publications, inactive Themes, Source transcripts, and internal Source fields.
 
-The public application still has no database writes, authentication, or
-administration. The Phase A database authorization foundation is applied in
-Production. An append-only RPC privilege remediation is pending owner review
-and separate Production approval; authentication UI and admin screens remain
-deferred.
+The public application still has no database writes. Phase A database
+authorization and RPC privilege remediation are applied in Production. Phase B
+adds invite-only Supabase email/password authentication and a minimal `/admin`
+shell that requires an active database membership; it does not add content
+editing or user management. Production Auth provisioning and configuration
+remain separate owner-approved operational steps.
 
 ## Project Documentation
 
@@ -64,6 +69,7 @@ deferred.
 - [Admin Workflow](docs/04_Admin_Workflow.md)
 - [Approved Admin and Authentication Architecture](docs/09_Admin_Authentication_Architecture.md)
 - [Phase A Authorization and Data Safety](docs/10_Phase_A_Authorization_Data_Safety.md)
+- [Phase B Authentication and Admin Shell](docs/11_Phase_B_Authentication_Admin_Shell.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)

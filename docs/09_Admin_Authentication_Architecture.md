@@ -15,11 +15,12 @@ editorial system. It covers authentication, authorization, administrative
 routes, editorial writes, publication, private Source data, recovery, and
 future image uploads.
 
-All twelve owner decisions in Section 10 are approved. This approval authorizes
-Phase A implementation only at this time. It does not authorize applying the
-Phase A migration to the linked production database, changing Supabase Auth
-configuration, handling production secrets, provisioning production users or
-memberships, beginning Phase B, or merging a Pull Request.
+All twelve owner decisions in Section 10 are approved. Phase A is implemented,
+merged, and applied to Production. Phase B implementation is separately
+authorized through a review-only Pull Request. This does not authorize changing
+Production Supabase Auth configuration, handling Production secrets,
+provisioning Production users or memberships, sending invitations, enrolling
+MFA, beginning Phase C, or merging the Phase B Pull Request.
 
 For the initial MVP rollout, retain Contributor, Editor, and Publisher in the
 database authorization model while provisioning only the owner as Publisher.
@@ -554,9 +555,9 @@ The owner approved all twelve decisions below for the phased implementation:
 
 The initial MVP provisions only the owner as Publisher. Contributor and Editor
 remain implemented database roles for later provisioning, without user-
-management UI in the MVP. Production configuration changes, remote database
-migration, production users or memberships, secret handling, Phase B work, and
-merging still require their separately defined authorization or review.
+management UI in the MVP. Production Auth configuration, users, memberships,
+invitations, MFA enrollment, secret handling, Phase C work, and merging still
+require their separately defined authorization or review.
 
 ## Primary implementation references
 

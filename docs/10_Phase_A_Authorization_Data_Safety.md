@@ -4,7 +4,7 @@
 
 **Project Version:** 0.1
 
-**Status:** Foundation applied to Production; RPC privilege remediation pending review
+**Status:** Complete, merged, and applied to Production
 
 **Last Updated:** August 2026
 
@@ -22,9 +22,10 @@ supabase/migrations/20260808090500_phase_a_authorization_foundation.sql
 supabase/migrations/20260808125100_phase_a_rpc_privilege_remediation.sql
 ```
 
-The foundation migration was applied to the linked Production database after
-separate owner approval. The RPC privilege remediation remains unapplied and
-requires another explicit Production approval after review and dry-run.
+Both migrations were applied to the linked Production database after separate
+owner approvals, followed by linked linting, privilege-catalog verification,
+anonymous negative tests, public-data regression checks, and Production site
+smoke testing. The matching migration files are merged into `main`.
 
 ## Authorization model
 
