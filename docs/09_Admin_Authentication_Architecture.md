@@ -1,23 +1,31 @@
-# FoodForFun Atlas — Admin and Authentication Architecture Proposal
+# FoodForFun Atlas — Admin and Authentication Architecture
 
-**Document Version:** 0.1
+**Document Version:** 0.2
 
 **Project Version:** 0.1
 
-**Status:** Proposed — awaiting approval
+**Status:** Approved
 
 **Last Updated:** August 2026
 
 ## Purpose and decision boundary
 
-This document proposes the minimum secure architecture for the FoodForFun Atlas
+This document defines the approved minimum secure architecture for the FoodForFun Atlas
 editorial system. It covers authentication, authorization, administrative
 routes, editorial writes, publication, private Source data, recovery, and
 future image uploads.
 
-This is an architecture milestone only. It does not authorize or include a
-database migration, Supabase Auth configuration, production-secret change,
-administrator account, or application implementation.
+All twelve owner decisions in Section 10 are approved. This approval authorizes
+Phase A implementation only at this time. It does not authorize applying the
+Phase A migration to the linked production database, changing Supabase Auth
+configuration, handling production secrets, provisioning production users or
+memberships, beginning Phase B, or merging a Pull Request.
+
+For the initial MVP rollout, retain Contributor, Editor, and Publisher in the
+database authorization model while provisioning only the owner as Publisher.
+Do not build contributor/editor user-management UI yet. The membership and
+authorization design must preserve support for all three roles so they can be
+provisioned later without a database or authorization redesign.
 
 The current public Atlas remains the baseline:
 
@@ -498,10 +506,9 @@ all three roles, ownership boundaries, every Story state, future publication,
 private Source fields, relationships, soft-deleted rows, preview, direct RPC
 calls, and invalid transition attempts.
 
-## 10. Decisions requiring owner approval
+## 10. Approved owner decisions
 
-Implementation should not begin until the owner approves or changes these
-decisions:
+The owner approved all twelve decisions below for the phased implementation:
 
 1. **Authorization source of truth:** database `editorial_memberships`, not
    email-domain checks, UI guards, user metadata, or a JWT role claim alone.
@@ -530,9 +537,11 @@ decisions:
 12. **Images:** defer uploads until the manual text workflow is stable, then use
     private staging and explicit promotion to immutable public assets.
 
-Approving this proposal authorizes planning the focused implementation Issues.
-It does not by itself authorize production configuration changes, a remote
-database migration, secret handling, or merging a Pull Request.
+The initial MVP provisions only the owner as Publisher. Contributor and Editor
+remain implemented database roles for later provisioning, without user-
+management UI in the MVP. Production configuration changes, remote database
+migration, production users or memberships, secret handling, Phase B work, and
+merging still require their separately defined authorization or review.
 
 ## Primary implementation references
 
