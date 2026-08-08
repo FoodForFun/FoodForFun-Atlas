@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:auth": "node --test tests/auth/*.test.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.112.1",
     "next": "16.2.12",
     "react": "19.2.8",

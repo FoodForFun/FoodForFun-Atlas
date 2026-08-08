@@ -1161,6 +1161,227 @@ time {
   text-transform: uppercase;
 }
 
+.admin-route-shell {
+  min-height: calc(100vh - 5.25rem);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.admin-auth-page,
+.admin-page {
+  width: min(100%, 68rem);
+  margin: 0 auto;
+  padding: clamp(2rem, 7vw, 6rem) clamp(1.5rem, 5vw, 4.5rem);
+}
+
+.admin-auth-page {
+  display: grid;
+  min-height: calc(100vh - 5.25rem);
+  place-items: center;
+}
+
+.admin-auth-card {
+  width: min(100%, 34rem);
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+}
+
+.admin-auth-card h1,
+.admin-header h1 {
+  max-width: 15ch;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.5rem, 7vw, 5.25rem);
+  line-height: 0.98;
+}
+
+.admin-auth-card h1 {
+  font-size: clamp(2.4rem, 7vw, 4.5rem);
+}
+
+.admin-auth-introduction,
+.admin-header > p:last-child {
+  max-width: 42rem;
+  margin: 1.5rem 0 0;
+  color: var(--ink-muted);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.admin-form {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.admin-field {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.admin-field label,
+.admin-session dt {
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-field input {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+}
+
+.admin-field p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.admin-form button,
+.admin-sign-out-form button {
+  min-height: 3rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--paper);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-form button:hover,
+.admin-sign-out-form button:hover {
+  background: #5f4431;
+}
+
+.admin-form button:disabled,
+.admin-sign-out-form button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.admin-form-message,
+.admin-status-banner {
+  padding: 0.9rem 1rem;
+  margin: 0;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--paper));
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.admin-form-message-error {
+  border-left-color: #8a3e2e;
+}
+
+.admin-auth-card > .admin-status-banner,
+.admin-page > .admin-status-banner {
+  margin-top: 2rem;
+}
+
+.admin-auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 1.25rem;
+  margin-top: 1.75rem;
+  font-size: 0.84rem;
+}
+
+.admin-auth-card > .admin-sign-out-form {
+  margin-top: 1.75rem;
+}
+
+.admin-header {
+  padding-bottom: clamp(3rem, 8vw, 6rem);
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-session {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.65fr) minmax(18rem, 1.35fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  padding: clamp(3rem, 7vw, 5rem) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-session h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+}
+
+.admin-session dl {
+  display: grid;
+  gap: 1.5rem;
+  margin: 0;
+}
+
+.admin-session dl div {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-session dd {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-section-nav {
+  padding: clamp(3rem, 7vw, 5rem) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-section-nav ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  padding: 1px;
+  margin: 1.5rem 0 0;
+  background: var(--line);
+  list-style: none;
+}
+
+.admin-section-nav li {
+  display: grid;
+  min-height: 8rem;
+  padding: 1.25rem;
+  background: var(--paper);
+  align-content: space-between;
+}
+
+.admin-section-nav span {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+}
+
+.admin-section-nav small {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-footer {
+  display: flex;
+  gap: 1rem;
+  padding-top: clamp(2rem, 5vw, 3rem);
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84rem;
+}
+
 @media (max-width: 44rem) {
   .global-header-inner {
     display: grid;
@@ -1267,6 +1488,35 @@ time {
   .not-found-page {
     padding-right: 1.25rem;
     padding-left: 1.25rem;
+  }
+
+  .admin-auth-page,
+  .admin-page {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .admin-auth-page {
+    min-height: auto;
+    place-items: start stretch;
+  }
+
+  .admin-auth-card {
+    padding: 1.5rem;
+  }
+
+  .admin-session,
+  .admin-section-nav ul {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-sign-out-form button {
+    width: 100%;
   }
 }
 
