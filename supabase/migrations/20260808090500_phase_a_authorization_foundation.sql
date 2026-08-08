@@ -5,6 +5,22 @@ create schema if not exists private;
 
 revoke all on schema private from public;
 
+create table private.editorial_audit_context (
+  backend_pid integer primary key,
+  operation text not null,
+  constraint editorial_audit_context_operation_check check (
+    operation in (
+      'transition',
+      'soft_delete',
+      'restore',
+      'revision_restore',
+      'relationship_restore'
+    )
+  )
+);
+
+revoke all on table private.editorial_audit_context from public;
+
 create table public.editorial_memberships (
   user_id uuid primary key references auth.users (id) on delete restrict,
   role text not null,
@@ -84,7 +100,7 @@ alter table public.sources
   ),
   add constraint sources_availability_status_check check (
     availability_status is null
-    or availability_status in (
+    or pg_catalog.lower(availability_status) in (
       'unknown',
       'available',
       'temporarily_unavailable',
@@ -94,11 +110,12 @@ alter table public.sources
     )
   ) not valid,
   add constraint sources_legacy_processing_status_check check (
-    processing_status in ('pending', 'processing', 'ready', 'failed', 'not_required')
+    pg_catalog.lower(processing_status)
+      in ('pending', 'processing', 'ready', 'failed', 'not_required')
   ) not valid,
   add constraint sources_legacy_transcript_quality_check check (
     transcript_quality is null
-    or transcript_quality in (
+    or pg_catalog.lower(transcript_quality) in (
       'unreviewed',
       'machine_generated',
       'human_reviewed',
@@ -146,7 +163,7 @@ on conflict (source_id) do nothing;
 alter table public.source_private_details
   add constraint source_private_details_transcript_quality_check check (
     transcript_quality is null
-    or transcript_quality in (
+    or pg_catalog.lower(transcript_quality) in (
       'unreviewed',
       'machine_generated',
       'human_reviewed',
@@ -154,10 +171,11 @@ alter table public.source_private_details
     )
   ) not valid,
   add constraint source_private_details_processing_status_check check (
-    processing_status in ('pending', 'processing', 'ready', 'failed', 'not_required')
+    pg_catalog.lower(processing_status)
+      in ('pending', 'processing', 'ready', 'failed', 'not_required')
   ) not valid,
   add constraint source_private_details_rights_status_check check (
-    rights_status in (
+    pg_catalog.lower(rights_status) in (
       'unreviewed',
       'permission_required',
       'permission_granted',
@@ -176,10 +194,12 @@ alter table public.story_places
   add column created_by uuid references auth.users (id) on delete set null,
   add column updated_at timestamptz not null default pg_catalog.now(),
   add column updated_by uuid references auth.users (id) on delete set null,
+  add column lock_version integer not null default 1,
   add constraint story_places_relationship_type_check check (
     relationship_type in ('featured', 'origin', 'setting', 'mentioned')
   ),
-  add constraint story_places_display_order_check check (display_order >= 0);
+  add constraint story_places_display_order_check check (display_order >= 0),
+  add constraint story_places_lock_version_check check (lock_version > 0);
 
 alter table public.story_themes
   add column relevance text not null default 'related',
@@ -187,10 +207,12 @@ alter table public.story_themes
   add column created_by uuid references auth.users (id) on delete set null,
   add column updated_at timestamptz not null default pg_catalog.now(),
   add column updated_by uuid references auth.users (id) on delete set null,
+  add column lock_version integer not null default 1,
   add constraint story_themes_relevance_check check (
     relevance in ('primary', 'related', 'contextual')
   ),
-  add constraint story_themes_display_order_check check (display_order >= 0);
+  add constraint story_themes_display_order_check check (display_order >= 0),
+  add constraint story_themes_lock_version_check check (lock_version > 0);
 
 alter table public.story_sources
   add column is_primary boolean not null default false,
@@ -199,13 +221,15 @@ alter table public.story_sources
   add column created_by uuid references auth.users (id) on delete set null,
   add column updated_at timestamptz not null default pg_catalog.now(),
   add column updated_by uuid references auth.users (id) on delete set null,
+  add column lock_version integer not null default 1,
   add constraint story_sources_source_role_check check (
     source_role in ('primary', 'supporting', 'context', 'fact_check')
   ),
   add constraint story_sources_primary_role_check check (
     is_primary = (source_role = 'primary')
   ),
-  add constraint story_sources_display_order_check check (display_order >= 0);
+  add constraint story_sources_display_order_check check (display_order >= 0),
+  add constraint story_sources_lock_version_check check (lock_version > 0);
 
 create table public.editorial_revisions (
   id bigint generated always as identity primary key,
@@ -406,6 +430,25 @@ as $$
   )
 $$;
 
+-- Sources attached to scheduled Stories require publication-level assurance
+-- even though anonymous RLS does not expose them until published_at is due.
+create function private.source_requires_publication_assurance(target_source_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.story_sources as ss
+    join public.stories as s on s.id = ss.story_id
+    where ss.source_id = target_source_id
+      and s.status = 'published'
+      and s.deleted_at is null
+  )
+$$;
+
 create function private.story_is_public(target_story_id uuid)
 returns boolean
 language sql
@@ -468,10 +511,11 @@ as $$
       and s.deleted_at is null
       and case private.current_editorial_role()
         when 'publisher' then true
-        when 'editor' then not private.source_is_public(s.id)
+        when 'editor' then
+          not private.source_requires_publication_assurance(s.id)
         when 'contributor' then
           s.created_by = (select auth.uid())
-          and not private.source_is_public(s.id)
+          and not private.source_requires_publication_assurance(s.id)
         else false
       end
   )
@@ -496,17 +540,45 @@ as $$
     )
 $$;
 
+create function private.set_editorial_audit_operation(requested_operation text)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+begin
+  if requested_operation not in (
+    'transition',
+    'soft_delete',
+    'restore',
+    'revision_restore',
+    'relationship_restore'
+  ) then
+    raise exception 'Unsupported editorial audit operation'
+      using errcode = '22023';
+  end if;
+
+  insert into private.editorial_audit_context (backend_pid, operation)
+  values (pg_catalog.pg_backend_pid(), requested_operation)
+  on conflict (backend_pid) do update
+  set operation = excluded.operation;
+end;
+$$;
+
 revoke all on function private.current_editorial_role() from public;
 revoke all on function private.has_editorial_role(text) from public;
 revoke all on function private.publisher_has_aal2() from public;
 revoke all on function private.can_update_story(uuid) from public;
 revoke all on function private.can_manage_story_relationship(uuid) from public;
 revoke all on function private.source_is_public(uuid) from public;
+revoke all on function private.source_requires_publication_assurance(uuid) from public;
 revoke all on function private.story_is_public(uuid) from public;
 revoke all on function private.place_is_public(uuid) from public;
 revoke all on function private.theme_is_public(uuid) from public;
 revoke all on function private.can_update_source(uuid) from public;
 revoke all on function private.can_read_source_private(uuid) from public;
+revoke all on function private.set_editorial_audit_operation(text) from public;
 
 grant usage on schema private to anon, authenticated;
 grant execute on function private.source_is_public(uuid) to anon, authenticated;
@@ -556,9 +628,11 @@ begin
   if tg_op = 'INSERT' then
     new.created_by := auth.uid();
     new.created_at := pg_catalog.now();
+    new.lock_version := 1;
   else
     new.created_by := old.created_by;
     new.created_at := old.created_at;
+    new.lock_version := old.lock_version + 1;
   end if;
 
   new.updated_by := auth.uid();
@@ -660,10 +734,16 @@ begin
     );
   end if;
 
-  configured_operation := nullif(
-    pg_catalog.current_setting('app.audit_operation', true),
-    ''
-  );
+  select context.operation
+  into configured_operation
+  from private.editorial_audit_context as context
+  where context.backend_pid = pg_catalog.pg_backend_pid()
+  for update;
+
+  if configured_operation is not null then
+    delete from private.editorial_audit_context as context
+    where context.backend_pid = pg_catalog.pg_backend_pid();
+  end if;
 
   revision_operation := coalesce(
     configured_operation,
@@ -704,10 +784,6 @@ begin
       'source_private_details'
     )
   );
-
-  if configured_operation is not null then
-    perform pg_catalog.set_config('app.audit_operation', '', true);
-  end if;
 
   if tg_op = 'DELETE' then
     return old;
@@ -845,22 +921,22 @@ begin
       raise exception 'Editor role required' using errcode = '42501';
     end if;
   elsif current_story.status = 'approved' and new_status = 'published' then
-    if not private.publisher_has_aal2() or not confirmed then
+    if not private.publisher_has_aal2() or confirmed is not true then
       raise exception 'Confirmed Publisher aal2 session required'
         using errcode = '42501';
     end if;
   elsif current_story.status = 'published' and new_status = 'approved' then
-    if not private.publisher_has_aal2() or not confirmed then
+    if not private.publisher_has_aal2() or confirmed is not true then
       raise exception 'Confirmed Publisher aal2 session required'
         using errcode = '42501';
     end if;
   elsif new_status = 'archived' and current_story.status <> 'archived' then
-    if not private.publisher_has_aal2() or not confirmed then
+    if not private.publisher_has_aal2() or confirmed is not true then
       raise exception 'Confirmed Publisher aal2 session required'
         using errcode = '42501';
     end if;
   elsif current_story.status = 'archived' and new_status = 'approved' then
-    if not private.publisher_has_aal2() or not confirmed then
+    if not private.publisher_has_aal2() or confirmed is not true then
       raise exception 'Confirmed Publisher aal2 session required'
         using errcode = '42501';
     end if;
@@ -903,7 +979,8 @@ begin
       where ss.story_id = target_story_id
         and (
           source.deleted_at is not null
-          or source.availability_status in ('unavailable', 'removed')
+          or pg_catalog.lower(source.availability_status)
+            in ('unavailable', 'removed')
           or details.source_id is null
           or details.rights_status not in (
             'permission_granted',
@@ -981,7 +1058,7 @@ begin
     next_archived_by := null;
   end if;
 
-  perform pg_catalog.set_config('app.audit_operation', 'transition', true);
+  perform private.set_editorial_audit_operation('transition');
 
   return query
   update public.stories as s
@@ -1016,7 +1093,7 @@ declare
   current_lock_version integer;
   current_deleted_at timestamptz;
 begin
-  if not private.publisher_has_aal2() or not confirmed then
+  if not private.publisher_has_aal2() or confirmed is not true then
     raise exception 'Confirmed Publisher aal2 session required'
       using errcode = '42501';
   end if;
@@ -1099,7 +1176,7 @@ begin
       using errcode = '40001';
   end if;
 
-  perform pg_catalog.set_config('app.audit_operation', 'soft_delete', true);
+  perform private.set_editorial_audit_operation('soft_delete');
 
   if target_entity_type = 'stories' then
     return query
@@ -1150,7 +1227,7 @@ declare
   current_deleted_at timestamptz;
   parent_deleted_at timestamptz;
 begin
-  if not private.publisher_has_aal2() or not confirmed then
+  if not private.publisher_has_aal2() or confirmed is not true then
     raise exception 'Confirmed Publisher aal2 session required'
       using errcode = '42501';
   end if;
@@ -1205,7 +1282,7 @@ begin
       using errcode = '40001';
   end if;
 
-  perform pg_catalog.set_config('app.audit_operation', 'restore', true);
+  perform private.set_editorial_audit_operation('restore');
 
   if target_entity_type = 'stories' then
     return query
@@ -1255,7 +1332,7 @@ declare
   current_lock_version integer;
   current_deleted_at timestamptz;
 begin
-  if not private.publisher_has_aal2() or not confirmed then
+  if not private.publisher_has_aal2() or confirmed is not true then
     raise exception 'Confirmed Publisher aal2 session required'
       using errcode = '42501';
   end if;
@@ -1325,7 +1402,7 @@ begin
       using errcode = '40001';
   end if;
 
-  perform pg_catalog.set_config('app.audit_operation', 'revision_restore', true);
+  perform private.set_editorial_audit_operation('revision_restore');
 
   if revision.entity_type = 'stories' then
     return query
@@ -1417,7 +1494,7 @@ declare
   revision public.editorial_revisions%rowtype;
   snapshot jsonb;
 begin
-  if not private.publisher_has_aal2() or not confirmed then
+  if not private.publisher_has_aal2() or confirmed is not true then
     raise exception 'Confirmed Publisher aal2 session required'
       using errcode = '42501';
   end if;
@@ -1446,7 +1523,7 @@ begin
       using errcode = '23503';
   end if;
 
-  perform pg_catalog.set_config('app.audit_operation', 'relationship_restore', true);
+  perform private.set_editorial_audit_operation('relationship_restore');
 
   if revision.entity_type = 'story_places' then
     if not exists (
@@ -1566,22 +1643,900 @@ begin
       using errcode = '22023';
   end if;
 
-  if active and (not private.publisher_has_aal2() or not confirmed) then
+  if active and (
+    not private.publisher_has_aal2()
+    or confirmed is not true
+  ) then
     raise exception 'Confirmed Publisher aal2 session required for restoration'
       using errcode = '42501';
   end if;
 
-  perform pg_catalog.set_config(
-    'app.audit_operation',
-    case when active then 'restore' else 'update' end,
-    true
-  );
+  if active then
+    perform private.set_editorial_audit_operation('restore');
+  end if;
 
   return query
   update public.themes as t
   set is_active = active
   where t.id = target_theme_id
   returning t.id, t.is_active, t.lock_version;
+end;
+$$;
+
+create function public.create_editorial_entity(
+  target_entity_type text,
+  payload jsonb
+)
+returns table (
+  entity_type text,
+  entity_id uuid,
+  lock_version integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if payload is null or pg_catalog.jsonb_typeof(payload) <> 'object' then
+    raise exception 'Entity payload must be a JSON object' using errcode = '22023';
+  end if;
+
+  if target_entity_type = 'stories' then
+    if not private.has_editorial_role('contributor') then
+      raise exception 'Contributor role required' using errcode = '42501';
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(payload) as key_name
+      where key_name not in (
+        'title', 'subtitle', 'slug', 'summary', 'body', 'atlas_insight',
+        'original_language', 'seo_title', 'seo_description', 'cover_image_url'
+      )
+    ) then
+      raise exception 'Story payload contains protected or unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    return query
+    insert into public.stories (
+      title,
+      subtitle,
+      slug,
+      summary,
+      body,
+      atlas_insight,
+      original_language,
+      seo_title,
+      seo_description,
+      cover_image_url
+    )
+    values (
+      payload ->> 'title',
+      payload ->> 'subtitle',
+      payload ->> 'slug',
+      payload ->> 'summary',
+      payload ->> 'body',
+      payload ->> 'atlas_insight',
+      payload ->> 'original_language',
+      payload ->> 'seo_title',
+      payload ->> 'seo_description',
+      payload ->> 'cover_image_url'
+    )
+    returning 'stories'::text, stories.id, stories.lock_version;
+  elsif target_entity_type = 'sources' then
+    if not private.has_editorial_role('contributor') then
+      raise exception 'Contributor role required' using errcode = '42501';
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(payload) as key_name
+      where key_name not in (
+        'source_type', 'original_title', 'source_url', 'external_id',
+        'publisher', 'original_published_at', 'original_language',
+        'original_description', 'availability_status'
+      )
+    ) then
+      raise exception 'Source payload contains private or unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    return query
+    with inserted_source as (
+      insert into public.sources (
+        source_type,
+        original_title,
+        source_url,
+        external_id,
+        publisher,
+        original_published_at,
+        original_language,
+        original_description,
+        availability_status
+      )
+      values (
+        payload ->> 'source_type',
+        payload ->> 'original_title',
+        payload ->> 'source_url',
+        payload ->> 'external_id',
+        payload ->> 'publisher',
+        nullif(payload ->> 'original_published_at', '')::timestamptz,
+        payload ->> 'original_language',
+        payload ->> 'original_description',
+        payload ->> 'availability_status'
+      )
+      returning sources.id, sources.lock_version
+    ), inserted_private_details as (
+      insert into public.source_private_details (source_id)
+      select inserted_source.id from inserted_source
+    )
+    select 'sources'::text, inserted_source.id, inserted_source.lock_version
+    from inserted_source;
+  elsif target_entity_type = 'places' then
+    if not private.has_editorial_role('editor') then
+      raise exception 'Editor role required' using errcode = '42501';
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(payload) as key_name
+      where key_name not in (
+        'name', 'slug', 'place_type', 'parent_place_id', 'country_code',
+        'latitude', 'longitude', 'location_precision', 'is_verified'
+      )
+    ) then
+      raise exception 'Place payload contains protected or unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    return query
+    insert into public.places (
+      name,
+      slug,
+      place_type,
+      parent_place_id,
+      country_code,
+      latitude,
+      longitude,
+      location_precision,
+      is_verified
+    )
+    values (
+      payload ->> 'name',
+      payload ->> 'slug',
+      payload ->> 'place_type',
+      nullif(payload ->> 'parent_place_id', '')::uuid,
+      payload ->> 'country_code',
+      nullif(payload ->> 'latitude', '')::numeric,
+      nullif(payload ->> 'longitude', '')::numeric,
+      payload ->> 'location_precision',
+      coalesce((payload ->> 'is_verified')::boolean, false)
+    )
+    returning 'places'::text, places.id, places.lock_version;
+  elsif target_entity_type = 'themes' then
+    if not private.has_editorial_role('editor') then
+      raise exception 'Editor role required' using errcode = '42501';
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(payload) as key_name
+      where key_name not in ('name', 'slug', 'description', 'theme_group')
+    ) then
+      raise exception 'Theme payload contains protected or unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    return query
+    insert into public.themes (name, slug, description, theme_group)
+    values (
+      payload ->> 'name',
+      payload ->> 'slug',
+      payload ->> 'description',
+      payload ->> 'theme_group'
+    )
+    returning 'themes'::text, themes.id, themes.lock_version;
+  else
+    raise exception 'Unsupported editorial entity type' using errcode = '22023';
+  end if;
+end;
+$$;
+
+create function public.update_editorial_entity(
+  target_entity_type text,
+  target_entity_id uuid,
+  expected_lock_version integer,
+  changes jsonb,
+  confirmed boolean default false
+)
+returns table (
+  entity_type text,
+  entity_id uuid,
+  lock_version integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_story public.stories%rowtype;
+  current_source public.sources%rowtype;
+  current_place public.places%rowtype;
+  current_theme public.themes%rowtype;
+begin
+  if expected_lock_version is null then
+    raise exception 'Expected lock version is required' using errcode = '22023';
+  end if;
+
+  if changes is null
+    or pg_catalog.jsonb_typeof(changes) <> 'object'
+    or changes = '{}'::jsonb then
+    raise exception 'Changes must be a non-empty JSON object' using errcode = '22023';
+  end if;
+
+  if target_entity_type = 'stories' then
+    select s.* into current_story
+    from public.stories as s
+    where s.id = target_entity_id
+    for update;
+
+    if not found then
+      raise exception 'Story not found' using errcode = 'P0002';
+    end if;
+
+    if not private.can_update_story(target_entity_id) then
+      raise exception 'Story update is not permitted' using errcode = '42501';
+    end if;
+
+    if current_story.status = 'published'
+      and (
+        not private.publisher_has_aal2()
+        or confirmed is not true
+      ) then
+      raise exception 'Confirmed Publisher aal2 session required for published Story edits'
+        using errcode = '42501';
+    end if;
+
+    if current_story.lock_version <> expected_lock_version then
+      raise exception 'Story was changed by another editor' using errcode = '40001';
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(changes) as key_name
+      where key_name not in (
+        'title', 'subtitle', 'slug', 'summary', 'body', 'atlas_insight',
+        'original_language', 'seo_title', 'seo_description', 'cover_image_url'
+      )
+    ) then
+      raise exception 'Story changes contain protected or unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    return query
+    update public.stories as s
+    set
+      title = case when changes ? 'title' then changes ->> 'title' else s.title end,
+      subtitle = case when changes ? 'subtitle' then changes ->> 'subtitle' else s.subtitle end,
+      slug = case when changes ? 'slug' then changes ->> 'slug' else s.slug end,
+      summary = case when changes ? 'summary' then changes ->> 'summary' else s.summary end,
+      body = case when changes ? 'body' then changes ->> 'body' else s.body end,
+      atlas_insight = case when changes ? 'atlas_insight' then changes ->> 'atlas_insight' else s.atlas_insight end,
+      original_language = case when changes ? 'original_language' then changes ->> 'original_language' else s.original_language end,
+      seo_title = case when changes ? 'seo_title' then changes ->> 'seo_title' else s.seo_title end,
+      seo_description = case when changes ? 'seo_description' then changes ->> 'seo_description' else s.seo_description end,
+      cover_image_url = case when changes ? 'cover_image_url' then changes ->> 'cover_image_url' else s.cover_image_url end
+    where s.id = target_entity_id
+    returning 'stories'::text, s.id, s.lock_version;
+  elsif target_entity_type = 'sources' then
+    select s.* into current_source
+    from public.sources as s
+    where s.id = target_entity_id
+    for update;
+
+    if not found then
+      raise exception 'Source not found' using errcode = 'P0002';
+    end if;
+
+    if not private.can_update_source(target_entity_id) then
+      raise exception 'Source update is not permitted' using errcode = '42501';
+    end if;
+
+    if private.source_requires_publication_assurance(target_entity_id)
+      and (
+        not private.publisher_has_aal2()
+        or confirmed is not true
+      ) then
+      raise exception 'Confirmed Publisher aal2 session required for public Source edits'
+        using errcode = '42501';
+    end if;
+
+    if current_source.lock_version <> expected_lock_version then
+      raise exception 'Source was changed by another editor' using errcode = '40001';
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(changes) as key_name
+      where key_name not in (
+        'source_type', 'original_title', 'source_url', 'external_id',
+        'publisher', 'original_published_at', 'original_language',
+        'original_description', 'availability_status'
+      )
+    ) then
+      raise exception 'Source changes contain private or unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    return query
+    update public.sources as s
+    set
+      source_type = case when changes ? 'source_type' then changes ->> 'source_type' else s.source_type end,
+      original_title = case when changes ? 'original_title' then changes ->> 'original_title' else s.original_title end,
+      source_url = case when changes ? 'source_url' then changes ->> 'source_url' else s.source_url end,
+      external_id = case when changes ? 'external_id' then changes ->> 'external_id' else s.external_id end,
+      publisher = case when changes ? 'publisher' then changes ->> 'publisher' else s.publisher end,
+      original_published_at = case when changes ? 'original_published_at' then nullif(changes ->> 'original_published_at', '')::timestamptz else s.original_published_at end,
+      original_language = case when changes ? 'original_language' then changes ->> 'original_language' else s.original_language end,
+      original_description = case when changes ? 'original_description' then changes ->> 'original_description' else s.original_description end,
+      availability_status = case when changes ? 'availability_status' then changes ->> 'availability_status' else s.availability_status end
+    where s.id = target_entity_id
+    returning 'sources'::text, s.id, s.lock_version;
+  elsif target_entity_type = 'places' then
+    if not private.has_editorial_role('editor') then
+      raise exception 'Editor role required' using errcode = '42501';
+    end if;
+
+    select p.* into current_place
+    from public.places as p
+    where p.id = target_entity_id
+    for update;
+
+    if not found then
+      raise exception 'Place not found' using errcode = 'P0002';
+    end if;
+
+    if current_place.deleted_at is not null then
+      raise exception 'Restore the soft-deleted Place before editing'
+        using errcode = '55000';
+    end if;
+
+    if current_place.lock_version <> expected_lock_version then
+      raise exception 'Place was changed by another editor' using errcode = '40001';
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(changes) as key_name
+      where key_name not in (
+        'name', 'slug', 'place_type', 'parent_place_id', 'country_code',
+        'latitude', 'longitude', 'location_precision', 'is_verified'
+      )
+    ) then
+      raise exception 'Place changes contain protected or unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    return query
+    update public.places as p
+    set
+      name = case when changes ? 'name' then changes ->> 'name' else p.name end,
+      slug = case when changes ? 'slug' then changes ->> 'slug' else p.slug end,
+      place_type = case when changes ? 'place_type' then changes ->> 'place_type' else p.place_type end,
+      parent_place_id = case when changes ? 'parent_place_id' then nullif(changes ->> 'parent_place_id', '')::uuid else p.parent_place_id end,
+      country_code = case when changes ? 'country_code' then changes ->> 'country_code' else p.country_code end,
+      latitude = case when changes ? 'latitude' then nullif(changes ->> 'latitude', '')::numeric else p.latitude end,
+      longitude = case when changes ? 'longitude' then nullif(changes ->> 'longitude', '')::numeric else p.longitude end,
+      location_precision = case when changes ? 'location_precision' then changes ->> 'location_precision' else p.location_precision end,
+      is_verified = case when changes ? 'is_verified' then (changes ->> 'is_verified')::boolean else p.is_verified end
+    where p.id = target_entity_id
+    returning 'places'::text, p.id, p.lock_version;
+  elsif target_entity_type = 'themes' then
+    if not private.has_editorial_role('editor') then
+      raise exception 'Editor role required' using errcode = '42501';
+    end if;
+
+    select t.* into current_theme
+    from public.themes as t
+    where t.id = target_entity_id
+    for update;
+
+    if not found then
+      raise exception 'Theme not found' using errcode = 'P0002';
+    end if;
+
+    if current_theme.deleted_at is not null then
+      raise exception 'Restore the soft-deleted Theme before editing'
+        using errcode = '55000';
+    end if;
+
+    if current_theme.lock_version <> expected_lock_version then
+      raise exception 'Theme was changed by another editor' using errcode = '40001';
+    end if;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(changes) as key_name
+      where key_name not in ('name', 'slug', 'description', 'theme_group')
+    ) then
+      raise exception 'Theme changes contain protected or unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    return query
+    update public.themes as t
+    set
+      name = case when changes ? 'name' then changes ->> 'name' else t.name end,
+      slug = case when changes ? 'slug' then changes ->> 'slug' else t.slug end,
+      description = case when changes ? 'description' then changes ->> 'description' else t.description end,
+      theme_group = case when changes ? 'theme_group' then changes ->> 'theme_group' else t.theme_group end
+    where t.id = target_entity_id
+    returning 'themes'::text, t.id, t.lock_version;
+  else
+    raise exception 'Unsupported editorial entity type' using errcode = '22023';
+  end if;
+end;
+$$;
+
+create function public.update_source_private_details(
+  target_source_id uuid,
+  expected_lock_version integer,
+  changes jsonb,
+  confirmed boolean default false
+)
+returns table (
+  source_id uuid,
+  lock_version integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_details public.source_private_details%rowtype;
+begin
+  if expected_lock_version is null then
+    raise exception 'Expected lock version is required' using errcode = '22023';
+  end if;
+
+  if changes is null
+    or pg_catalog.jsonb_typeof(changes) <> 'object'
+    or changes = '{}'::jsonb then
+    raise exception 'Changes must be a non-empty JSON object' using errcode = '22023';
+  end if;
+
+  if not private.can_update_source(target_source_id) then
+    raise exception 'Private Source update is not permitted' using errcode = '42501';
+  end if;
+
+  if private.source_requires_publication_assurance(target_source_id)
+    and (
+      not private.publisher_has_aal2()
+      or confirmed is not true
+    ) then
+    raise exception 'Confirmed Publisher aal2 session required for public Source review changes'
+      using errcode = '42501';
+  end if;
+
+  select details.* into current_details
+  from public.source_private_details as details
+  where details.source_id = target_source_id
+  for update;
+
+  if not found then
+    raise exception 'Private Source details not found' using errcode = 'P0002';
+  end if;
+
+  if current_details.lock_version <> expected_lock_version then
+    raise exception 'Private Source details were changed by another editor'
+      using errcode = '40001';
+  end if;
+
+  if exists (
+    select 1
+    from pg_catalog.jsonb_object_keys(changes) as key_name
+    where key_name not in (
+      'raw_transcript', 'cleaned_transcript', 'transcript_quality',
+      'processing_status', 'rights_status', 'rights_note', 'internal_note'
+    )
+  ) then
+    raise exception 'Private Source changes contain protected or unsupported fields'
+      using errcode = '22023';
+  end if;
+
+  return query
+  update public.source_private_details as details
+  set
+    raw_transcript = case when changes ? 'raw_transcript' then changes ->> 'raw_transcript' else details.raw_transcript end,
+    cleaned_transcript = case when changes ? 'cleaned_transcript' then changes ->> 'cleaned_transcript' else details.cleaned_transcript end,
+    transcript_quality = case when changes ? 'transcript_quality' then changes ->> 'transcript_quality' else details.transcript_quality end,
+    processing_status = case when changes ? 'processing_status' then changes ->> 'processing_status' else details.processing_status end,
+    rights_status = case when changes ? 'rights_status' then changes ->> 'rights_status' else details.rights_status end,
+    rights_note = case when changes ? 'rights_note' then changes ->> 'rights_note' else details.rights_note end,
+    internal_note = case when changes ? 'internal_note' then changes ->> 'internal_note' else details.internal_note end
+  where details.source_id = target_source_id
+  returning details.source_id, details.lock_version;
+end;
+$$;
+
+create function public.create_story_relationship(
+  target_relationship_type text,
+  target_story_id uuid,
+  target_related_id uuid,
+  attributes jsonb default '{}'::jsonb,
+  confirmed boolean default false
+)
+returns table (
+  relationship_type text,
+  story_id uuid,
+  related_id uuid,
+  lock_version integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if attributes is null or pg_catalog.jsonb_typeof(attributes) <> 'object' then
+    raise exception 'Relationship attributes must be a JSON object'
+      using errcode = '22023';
+  end if;
+
+  if not private.can_manage_story_relationship(target_story_id) then
+    raise exception 'Story relationship update is not permitted'
+      using errcode = '42501';
+  end if;
+
+  if exists (
+    select 1 from public.stories as s
+    where s.id = target_story_id
+      and s.status = 'published'
+  ) and (
+    not private.publisher_has_aal2()
+    or confirmed is not true
+  ) then
+    raise exception 'Confirmed Publisher aal2 session required for published Story relationships'
+      using errcode = '42501';
+  end if;
+
+  if target_relationship_type = 'story_places' then
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(attributes) as key_name
+      where key_name not in ('is_primary', 'relationship_type', 'display_order')
+    ) then
+      raise exception 'Place relationship contains unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    if not exists (
+      select 1 from public.places as p
+      where p.id = target_related_id and p.deleted_at is null
+    ) then
+      raise exception 'Related Place is unavailable' using errcode = '23503';
+    end if;
+
+    return query
+    insert into public.story_places (
+      story_id,
+      place_id,
+      is_primary,
+      relationship_type,
+      display_order
+    )
+    values (
+      target_story_id,
+      target_related_id,
+      coalesce((attributes ->> 'is_primary')::boolean, false),
+      coalesce(attributes ->> 'relationship_type', 'featured'),
+      coalesce((attributes ->> 'display_order')::integer, 0)
+    )
+    returning
+      'story_places'::text,
+      story_places.story_id,
+      story_places.place_id,
+      story_places.lock_version;
+  elsif target_relationship_type = 'story_themes' then
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(attributes) as key_name
+      where key_name not in ('relevance', 'display_order')
+    ) then
+      raise exception 'Theme relationship contains unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    if not exists (
+      select 1 from public.themes as t
+      where t.id = target_related_id and t.deleted_at is null
+    ) then
+      raise exception 'Related Theme is unavailable' using errcode = '23503';
+    end if;
+
+    return query
+    insert into public.story_themes (
+      story_id,
+      theme_id,
+      relevance,
+      display_order
+    )
+    values (
+      target_story_id,
+      target_related_id,
+      coalesce(attributes ->> 'relevance', 'related'),
+      coalesce((attributes ->> 'display_order')::integer, 0)
+    )
+    returning
+      'story_themes'::text,
+      story_themes.story_id,
+      story_themes.theme_id,
+      story_themes.lock_version;
+  elsif target_relationship_type = 'story_sources' then
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(attributes) as key_name
+      where key_name not in ('is_primary', 'source_role', 'display_order')
+    ) then
+      raise exception 'Source relationship contains unsupported fields'
+        using errcode = '22023';
+    end if;
+
+    if not exists (
+      select 1 from public.sources as s
+      where s.id = target_related_id and s.deleted_at is null
+    ) then
+      raise exception 'Related Source is unavailable' using errcode = '23503';
+    end if;
+
+    return query
+    insert into public.story_sources (
+      story_id,
+      source_id,
+      is_primary,
+      source_role,
+      display_order
+    )
+    values (
+      target_story_id,
+      target_related_id,
+      coalesce(
+        (attributes ->> 'is_primary')::boolean,
+        attributes ->> 'source_role' = 'primary',
+        false
+      ),
+      coalesce(attributes ->> 'source_role', 'supporting'),
+      coalesce((attributes ->> 'display_order')::integer, 0)
+    )
+    returning
+      'story_sources'::text,
+      story_sources.story_id,
+      story_sources.source_id,
+      story_sources.lock_version;
+  else
+    raise exception 'Unsupported Story relationship type' using errcode = '22023';
+  end if;
+end;
+$$;
+
+create function public.update_story_relationship(
+  target_relationship_type text,
+  target_story_id uuid,
+  target_related_id uuid,
+  expected_lock_version integer,
+  attributes jsonb,
+  confirmed boolean default false
+)
+returns table (
+  relationship_type text,
+  story_id uuid,
+  related_id uuid,
+  lock_version integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_lock_version integer;
+begin
+  if expected_lock_version is null then
+    raise exception 'Expected lock version is required' using errcode = '22023';
+  end if;
+
+  if attributes is null
+    or pg_catalog.jsonb_typeof(attributes) <> 'object'
+    or attributes = '{}'::jsonb then
+    raise exception 'Relationship attributes must be a non-empty JSON object'
+      using errcode = '22023';
+  end if;
+
+  if not private.can_manage_story_relationship(target_story_id) then
+    raise exception 'Story relationship update is not permitted'
+      using errcode = '42501';
+  end if;
+
+  if exists (
+    select 1 from public.stories as s
+    where s.id = target_story_id
+      and s.status = 'published'
+  ) and (
+    not private.publisher_has_aal2()
+    or confirmed is not true
+  ) then
+    raise exception 'Confirmed Publisher aal2 session required for published Story relationships'
+      using errcode = '42501';
+  end if;
+
+  if target_relationship_type = 'story_places' then
+    select sp.lock_version into current_lock_version
+    from public.story_places as sp
+    where sp.story_id = target_story_id and sp.place_id = target_related_id
+    for update;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(attributes) as key_name
+      where key_name not in ('is_primary', 'relationship_type', 'display_order')
+    ) then
+      raise exception 'Place relationship contains unsupported fields'
+        using errcode = '22023';
+    end if;
+  elsif target_relationship_type = 'story_themes' then
+    select st.lock_version into current_lock_version
+    from public.story_themes as st
+    where st.story_id = target_story_id and st.theme_id = target_related_id
+    for update;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(attributes) as key_name
+      where key_name not in ('relevance', 'display_order')
+    ) then
+      raise exception 'Theme relationship contains unsupported fields'
+        using errcode = '22023';
+    end if;
+  elsif target_relationship_type = 'story_sources' then
+    select ss.lock_version into current_lock_version
+    from public.story_sources as ss
+    where ss.story_id = target_story_id and ss.source_id = target_related_id
+    for update;
+
+    if exists (
+      select 1
+      from pg_catalog.jsonb_object_keys(attributes) as key_name
+      where key_name not in ('is_primary', 'source_role', 'display_order')
+    ) then
+      raise exception 'Source relationship contains unsupported fields'
+        using errcode = '22023';
+    end if;
+  else
+    raise exception 'Unsupported Story relationship type' using errcode = '22023';
+  end if;
+
+  if current_lock_version is null then
+    raise exception 'Story relationship not found' using errcode = 'P0002';
+  end if;
+
+  if current_lock_version <> expected_lock_version then
+    raise exception 'Story relationship was changed by another editor'
+      using errcode = '40001';
+  end if;
+
+  if target_relationship_type = 'story_places' then
+    return query
+    update public.story_places as sp
+    set
+      is_primary = case when attributes ? 'is_primary' then (attributes ->> 'is_primary')::boolean else sp.is_primary end,
+      relationship_type = case when attributes ? 'relationship_type' then attributes ->> 'relationship_type' else sp.relationship_type end,
+      display_order = case when attributes ? 'display_order' then (attributes ->> 'display_order')::integer else sp.display_order end
+    where sp.story_id = target_story_id and sp.place_id = target_related_id
+    returning 'story_places'::text, sp.story_id, sp.place_id, sp.lock_version;
+  elsif target_relationship_type = 'story_themes' then
+    return query
+    update public.story_themes as st
+    set
+      relevance = case when attributes ? 'relevance' then attributes ->> 'relevance' else st.relevance end,
+      display_order = case when attributes ? 'display_order' then (attributes ->> 'display_order')::integer else st.display_order end
+    where st.story_id = target_story_id and st.theme_id = target_related_id
+    returning 'story_themes'::text, st.story_id, st.theme_id, st.lock_version;
+  else
+    return query
+    update public.story_sources as ss
+    set
+      is_primary = case when attributes ? 'is_primary' then (attributes ->> 'is_primary')::boolean else ss.is_primary end,
+      source_role = case when attributes ? 'source_role' then attributes ->> 'source_role' else ss.source_role end,
+      display_order = case when attributes ? 'display_order' then (attributes ->> 'display_order')::integer else ss.display_order end
+    where ss.story_id = target_story_id and ss.source_id = target_related_id
+    returning 'story_sources'::text, ss.story_id, ss.source_id, ss.lock_version;
+  end if;
+end;
+$$;
+
+create function public.delete_story_relationship(
+  target_relationship_type text,
+  target_story_id uuid,
+  target_related_id uuid,
+  expected_lock_version integer,
+  confirmed boolean default false
+)
+returns table (
+  relationship_type text,
+  story_id uuid,
+  related_id uuid
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_lock_version integer;
+begin
+  if expected_lock_version is null then
+    raise exception 'Expected lock version is required' using errcode = '22023';
+  end if;
+
+  if not private.can_manage_story_relationship(target_story_id) then
+    raise exception 'Story relationship deletion is not permitted'
+      using errcode = '42501';
+  end if;
+
+  if exists (
+    select 1 from public.stories as s
+    where s.id = target_story_id
+      and s.status = 'published'
+  ) and (
+    not private.publisher_has_aal2()
+    or confirmed is not true
+  ) then
+    raise exception 'Confirmed Publisher aal2 session required for published Story relationships'
+      using errcode = '42501';
+  end if;
+
+  if target_relationship_type = 'story_places' then
+    select sp.lock_version into current_lock_version
+    from public.story_places as sp
+    where sp.story_id = target_story_id and sp.place_id = target_related_id
+    for update;
+  elsif target_relationship_type = 'story_themes' then
+    select st.lock_version into current_lock_version
+    from public.story_themes as st
+    where st.story_id = target_story_id and st.theme_id = target_related_id
+    for update;
+  elsif target_relationship_type = 'story_sources' then
+    select ss.lock_version into current_lock_version
+    from public.story_sources as ss
+    where ss.story_id = target_story_id and ss.source_id = target_related_id
+    for update;
+  else
+    raise exception 'Unsupported Story relationship type' using errcode = '22023';
+  end if;
+
+  if current_lock_version is null then
+    raise exception 'Story relationship not found' using errcode = 'P0002';
+  end if;
+
+  if current_lock_version <> expected_lock_version then
+    raise exception 'Story relationship was changed by another editor'
+      using errcode = '40001';
+  end if;
+
+  if target_relationship_type = 'story_places' then
+    return query
+    delete from public.story_places as sp
+    where sp.story_id = target_story_id and sp.place_id = target_related_id
+    returning 'story_places'::text, sp.story_id, sp.place_id;
+  elsif target_relationship_type = 'story_themes' then
+    return query
+    delete from public.story_themes as st
+    where st.story_id = target_story_id and st.theme_id = target_related_id
+    returning 'story_themes'::text, st.story_id, st.theme_id;
+  else
+    return query
+    delete from public.story_sources as ss
+    where ss.story_id = target_story_id and ss.source_id = target_related_id
+    returning 'story_sources'::text, ss.story_id, ss.source_id;
+  end if;
 end;
 $$;
 
@@ -1602,6 +2557,22 @@ revoke all on function public.restore_soft_deleted_entity(
 revoke all on function public.restore_editorial_revision(bigint, integer, boolean) from public;
 revoke all on function public.restore_relationship_revision(bigint, boolean) from public;
 revoke all on function public.set_theme_active(uuid, boolean, integer, boolean) from public;
+revoke all on function public.create_editorial_entity(text, jsonb) from public;
+revoke all on function public.update_editorial_entity(
+  text, uuid, integer, jsonb, boolean
+) from public;
+revoke all on function public.update_source_private_details(
+  uuid, integer, jsonb, boolean
+) from public;
+revoke all on function public.create_story_relationship(
+  text, uuid, uuid, jsonb, boolean
+) from public;
+revoke all on function public.update_story_relationship(
+  text, uuid, uuid, integer, jsonb, boolean
+) from public;
+revoke all on function public.delete_story_relationship(
+  text, uuid, uuid, integer, boolean
+) from public;
 
 grant execute on function public.transition_story_status(
   uuid,
@@ -1624,6 +2595,23 @@ grant execute on function public.restore_relationship_revision(bigint, boolean)
   to authenticated;
 grant execute on function public.set_theme_active(uuid, boolean, integer, boolean)
   to authenticated;
+grant execute on function public.create_editorial_entity(text, jsonb)
+  to authenticated;
+grant execute on function public.update_editorial_entity(
+  text, uuid, integer, jsonb, boolean
+) to authenticated;
+grant execute on function public.update_source_private_details(
+  uuid, integer, jsonb, boolean
+) to authenticated;
+grant execute on function public.create_story_relationship(
+  text, uuid, uuid, jsonb, boolean
+) to authenticated;
+grant execute on function public.update_story_relationship(
+  text, uuid, uuid, integer, jsonb, boolean
+) to authenticated;
+grant execute on function public.delete_story_relationship(
+  text, uuid, uuid, integer, boolean
+) to authenticated;
 
 alter table public.editorial_memberships enable row level security;
 alter table public.source_private_details enable row level security;
@@ -1659,31 +2647,6 @@ using (
   )
 );
 
-create policy stories_editorial_insert
-on public.stories
-for insert
-to authenticated
-with check (
-  private.has_editorial_role('contributor')
-  and status = 'draft'
-  and published_at is null
-  and published_by is null
-  and archived_at is null
-  and archived_by is null
-  and deleted_at is null
-  and deleted_by is null
-  and created_by = (select auth.uid())
-  and updated_by = (select auth.uid())
-  and lock_version = 1
-);
-
-create policy stories_editorial_update
-on public.stories
-for update
-to authenticated
-using (private.can_update_story(id))
-with check (private.can_update_story(id));
-
 create policy places_public_read
 on public.places
 for select
@@ -1700,32 +2663,6 @@ using (
     deleted_at is null
     or private.has_editorial_role('publisher')
   )
-);
-
-create policy places_editorial_insert
-on public.places
-for insert
-to authenticated
-with check (
-  private.has_editorial_role('editor')
-  and deleted_at is null
-  and deleted_by is null
-  and created_by = (select auth.uid())
-  and updated_by = (select auth.uid())
-  and lock_version = 1
-);
-
-create policy places_editorial_update
-on public.places
-for update
-to authenticated
-using (
-  private.has_editorial_role('editor')
-  and deleted_at is null
-)
-with check (
-  private.has_editorial_role('editor')
-  and deleted_at is null
 );
 
 create policy themes_public_read
@@ -1749,33 +2686,6 @@ using (
   )
 );
 
-create policy themes_editorial_insert
-on public.themes
-for insert
-to authenticated
-with check (
-  private.has_editorial_role('editor')
-  and is_active
-  and deleted_at is null
-  and deleted_by is null
-  and created_by = (select auth.uid())
-  and updated_by = (select auth.uid())
-  and lock_version = 1
-);
-
-create policy themes_editorial_update
-on public.themes
-for update
-to authenticated
-using (
-  private.has_editorial_role('editor')
-  and deleted_at is null
-)
-with check (
-  private.has_editorial_role('editor')
-  and deleted_at is null
-);
-
 create policy sources_public_read
 on public.sources
 for select
@@ -1797,49 +2707,11 @@ using (
   )
 );
 
-create policy sources_editorial_insert
-on public.sources
-for insert
-to authenticated
-with check (
-  private.has_editorial_role('contributor')
-  and deleted_at is null
-  and deleted_by is null
-  and created_by = (select auth.uid())
-  and updated_by = (select auth.uid())
-  and lock_version = 1
-);
-
-create policy sources_editorial_update
-on public.sources
-for update
-to authenticated
-using (private.can_update_source(id))
-with check (private.can_update_source(id));
-
 create policy source_private_details_editorial_read
 on public.source_private_details
 for select
 to authenticated
 using (private.can_read_source_private(source_id));
-
-create policy source_private_details_editorial_insert
-on public.source_private_details
-for insert
-to authenticated
-with check (
-  private.can_update_source(source_id)
-  and created_by = (select auth.uid())
-  and updated_by = (select auth.uid())
-  and lock_version = 1
-);
-
-create policy source_private_details_editorial_update
-on public.source_private_details
-for update
-to authenticated
-using (private.can_update_source(source_id))
-with check (private.can_update_source(source_id));
 
 create policy story_places_public_read_published
 on public.story_places
@@ -1863,29 +2735,6 @@ using (
   )
 );
 
-create policy story_places_editorial_insert
-on public.story_places
-for insert
-to authenticated
-with check (
-  private.can_manage_story_relationship(story_id)
-  and created_by = (select auth.uid())
-  and updated_by = (select auth.uid())
-);
-
-create policy story_places_editorial_update
-on public.story_places
-for update
-to authenticated
-using (private.can_manage_story_relationship(story_id))
-with check (private.can_manage_story_relationship(story_id));
-
-create policy story_places_editorial_delete
-on public.story_places
-for delete
-to authenticated
-using (private.can_manage_story_relationship(story_id));
-
 create policy story_themes_public_read_published
 on public.story_themes
 for select
@@ -1908,29 +2757,6 @@ using (
   )
 );
 
-create policy story_themes_editorial_insert
-on public.story_themes
-for insert
-to authenticated
-with check (
-  private.can_manage_story_relationship(story_id)
-  and created_by = (select auth.uid())
-  and updated_by = (select auth.uid())
-);
-
-create policy story_themes_editorial_update
-on public.story_themes
-for update
-to authenticated
-using (private.can_manage_story_relationship(story_id))
-with check (private.can_manage_story_relationship(story_id));
-
-create policy story_themes_editorial_delete
-on public.story_themes
-for delete
-to authenticated
-using (private.can_manage_story_relationship(story_id));
-
 create policy story_sources_public_read_published
 on public.story_sources
 for select
@@ -1952,29 +2778,6 @@ using (
   )
 );
 
-create policy story_sources_editorial_insert
-on public.story_sources
-for insert
-to authenticated
-with check (
-  private.can_manage_story_relationship(story_id)
-  and created_by = (select auth.uid())
-  and updated_by = (select auth.uid())
-);
-
-create policy story_sources_editorial_update
-on public.story_sources
-for update
-to authenticated
-using (private.can_manage_story_relationship(story_id))
-with check (private.can_manage_story_relationship(story_id));
-
-create policy story_sources_editorial_delete
-on public.story_sources
-for delete
-to authenticated
-using (private.can_manage_story_relationship(story_id));
-
 create policy editorial_memberships_self_read
 on public.editorial_memberships
 for select
@@ -1992,6 +2795,224 @@ using (
     or private.has_editorial_role('publisher')
   )
 );
+
+create view public.editorial_stories
+with (security_barrier = true)
+as
+select
+  s.id,
+  s.title,
+  s.subtitle,
+  s.slug,
+  s.summary,
+  s.body,
+  s.atlas_insight,
+  s.original_language,
+  s.seo_title,
+  s.seo_description,
+  s.status,
+  s.cover_image_url,
+  s.published_at,
+  s.created_at,
+  s.updated_at,
+  s.created_by,
+  s.updated_by,
+  s.published_by,
+  s.archived_at,
+  s.archived_by,
+  s.deleted_at,
+  s.deleted_by,
+  s.lock_version
+from public.stories as s
+where private.has_editorial_role('contributor')
+  and (
+    s.deleted_at is null
+    or private.has_editorial_role('publisher')
+  );
+
+create view public.editorial_places
+with (security_barrier = true)
+as
+select
+  p.id,
+  p.name,
+  p.slug,
+  p.place_type,
+  p.parent_place_id,
+  p.country_code,
+  p.latitude,
+  p.longitude,
+  p.location_precision,
+  p.is_verified,
+  p.created_at,
+  p.updated_at,
+  p.created_by,
+  p.updated_by,
+  p.deleted_at,
+  p.deleted_by,
+  p.lock_version
+from public.places as p
+where private.has_editorial_role('contributor')
+  and (
+    p.deleted_at is null
+    or private.has_editorial_role('publisher')
+  );
+
+create view public.editorial_themes
+with (security_barrier = true)
+as
+select
+  t.id,
+  t.name,
+  t.slug,
+  t.description,
+  t.theme_group,
+  t.is_active,
+  t.created_at,
+  t.updated_at,
+  t.created_by,
+  t.updated_by,
+  t.deleted_at,
+  t.deleted_by,
+  t.lock_version
+from public.themes as t
+where private.has_editorial_role('contributor')
+  and (
+    t.deleted_at is null
+    or private.has_editorial_role('publisher')
+  );
+
+create view public.editorial_sources
+with (security_barrier = true)
+as
+select
+  s.id,
+  s.source_type,
+  s.original_title,
+  s.source_url,
+  s.external_id,
+  s.publisher,
+  s.original_published_at,
+  s.original_language,
+  s.original_description,
+  s.availability_status,
+  s.collected_at,
+  s.created_at,
+  s.updated_at,
+  s.created_by,
+  s.updated_by,
+  s.deleted_at,
+  s.deleted_by,
+  s.lock_version
+from public.sources as s
+where private.has_editorial_role('contributor')
+  and (
+    s.deleted_at is null
+    or private.has_editorial_role('publisher')
+  );
+
+create view public.editorial_source_private_details
+with (security_barrier = true)
+as
+select
+  details.source_id,
+  details.raw_transcript,
+  details.cleaned_transcript,
+  details.transcript_quality,
+  details.processing_status,
+  details.rights_status,
+  details.rights_note,
+  details.internal_note,
+  details.created_at,
+  details.updated_at,
+  details.created_by,
+  details.updated_by,
+  details.lock_version
+from public.source_private_details as details
+where private.can_read_source_private(details.source_id);
+
+create view public.editorial_story_places
+with (security_barrier = true)
+as
+select
+  sp.story_id,
+  sp.place_id,
+  sp.is_primary,
+  sp.relationship_type,
+  sp.display_order,
+  sp.created_at,
+  sp.created_by,
+  sp.updated_at,
+  sp.updated_by,
+  sp.lock_version
+from public.story_places as sp
+join public.stories as s on s.id = sp.story_id
+where private.has_editorial_role('contributor')
+  and (
+    s.deleted_at is null
+    or private.has_editorial_role('publisher')
+  );
+
+create view public.editorial_story_themes
+with (security_barrier = true)
+as
+select
+  st.story_id,
+  st.theme_id,
+  st.relevance,
+  st.display_order,
+  st.created_at,
+  st.created_by,
+  st.updated_at,
+  st.updated_by,
+  st.lock_version
+from public.story_themes as st
+join public.stories as s on s.id = st.story_id
+where private.has_editorial_role('contributor')
+  and (
+    s.deleted_at is null
+    or private.has_editorial_role('publisher')
+  );
+
+create view public.editorial_story_sources
+with (security_barrier = true)
+as
+select
+  ss.story_id,
+  ss.source_id,
+  ss.is_primary,
+  ss.source_role,
+  ss.display_order,
+  ss.created_at,
+  ss.created_by,
+  ss.updated_at,
+  ss.updated_by,
+  ss.lock_version
+from public.story_sources as ss
+join public.stories as s on s.id = ss.story_id
+where private.has_editorial_role('contributor')
+  and (
+    s.deleted_at is null
+    or private.has_editorial_role('publisher')
+  );
+
+revoke all on table public.editorial_stories from anon, authenticated;
+revoke all on table public.editorial_places from anon, authenticated;
+revoke all on table public.editorial_themes from anon, authenticated;
+revoke all on table public.editorial_sources from anon, authenticated;
+revoke all on table public.editorial_source_private_details from anon, authenticated;
+revoke all on table public.editorial_story_places from anon, authenticated;
+revoke all on table public.editorial_story_themes from anon, authenticated;
+revoke all on table public.editorial_story_sources from anon, authenticated;
+
+grant select on table public.editorial_stories to authenticated;
+grant select on table public.editorial_places to authenticated;
+grant select on table public.editorial_themes to authenticated;
+grant select on table public.editorial_sources to authenticated;
+grant select on table public.editorial_source_private_details to authenticated;
+grant select on table public.editorial_story_places to authenticated;
+grant select on table public.editorial_story_themes to authenticated;
+grant select on table public.editorial_story_sources to authenticated;
 
 revoke all on table public.stories from anon, authenticated;
 revoke all on table public.places from anon, authenticated;
@@ -2020,54 +3041,7 @@ grant select (
   published_at,
   created_at,
   updated_at
-) on table public.stories to anon;
-
-grant select (
-  id,
-  title,
-  subtitle,
-  slug,
-  summary,
-  body,
-  atlas_insight,
-  original_language,
-  seo_title,
-  seo_description,
-  status,
-  cover_image_url,
-  published_at,
-  archived_at,
-  deleted_at,
-  created_at,
-  updated_at,
-  lock_version
-) on table public.stories to authenticated;
-
-grant insert (
-  title,
-  subtitle,
-  slug,
-  summary,
-  body,
-  atlas_insight,
-  original_language,
-  seo_title,
-  seo_description,
-  cover_image_url
-) on table public.stories to authenticated;
-
-grant update (
-  title,
-  subtitle,
-  slug,
-  summary,
-  body,
-  atlas_insight,
-  original_language,
-  seo_title,
-  seo_description,
-  cover_image_url
-) on table public.stories to authenticated;
+) on table public.stories to anon, authenticated;
 
 grant select (
   id,
@@ -2082,48 +3056,7 @@ grant select (
   is_verified,
   created_at,
   updated_at
-) on table public.places to anon;
-
-grant select (
-  id,
-  name,
-  slug,
-  place_type,
-  parent_place_id,
-  country_code,
-  latitude,
-  longitude,
-  location_precision,
-  is_verified,
-  deleted_at,
-  created_at,
-  updated_at,
-  lock_version
-) on table public.places to authenticated;
-
-grant insert (
-  name,
-  slug,
-  place_type,
-  parent_place_id,
-  country_code,
-  latitude,
-  longitude,
-  location_precision,
-  is_verified
-) on table public.places to authenticated;
-
-grant update (
-  name,
-  slug,
-  place_type,
-  parent_place_id,
-  country_code,
-  latitude,
-  longitude,
-  location_precision,
-  is_verified
-) on table public.places to authenticated;
+) on table public.places to anon, authenticated;
 
 grant select (
   id,
@@ -2134,34 +3067,7 @@ grant select (
   is_active,
   created_at,
   updated_at
-) on table public.themes to anon;
-
-grant select (
-  id,
-  name,
-  slug,
-  description,
-  theme_group,
-  is_active,
-  deleted_at,
-  created_at,
-  updated_at,
-  lock_version
-) on table public.themes to authenticated;
-
-grant insert (
-  name,
-  slug,
-  description,
-  theme_group
-) on table public.themes to authenticated;
-
-grant update (
-  name,
-  slug,
-  description,
-  theme_group
-) on table public.themes to authenticated;
+) on table public.themes to anon, authenticated;
 
 grant select (
   id,
@@ -2174,81 +3080,7 @@ grant select (
   original_language,
   original_description,
   availability_status
-) on table public.sources to anon;
-
-grant select (
-  id,
-  source_type,
-  original_title,
-  source_url,
-  external_id,
-  publisher,
-  original_published_at,
-  original_language,
-  original_description,
-  availability_status,
-  deleted_at,
-  lock_version
-) on table public.sources to authenticated;
-
-grant insert (
-  source_type,
-  original_title,
-  source_url,
-  external_id,
-  publisher,
-  original_published_at,
-  original_language,
-  original_description,
-  availability_status
-) on table public.sources to authenticated;
-
-grant update (
-  source_type,
-  original_title,
-  source_url,
-  external_id,
-  publisher,
-  original_published_at,
-  original_language,
-  original_description,
-  availability_status
-) on table public.sources to authenticated;
-
-grant select (
-  source_id,
-  raw_transcript,
-  cleaned_transcript,
-  transcript_quality,
-  processing_status,
-  rights_status,
-  rights_note,
-  internal_note,
-  created_at,
-  updated_at,
-  lock_version
-) on table public.source_private_details to authenticated;
-
-grant insert (
-  source_id,
-  raw_transcript,
-  cleaned_transcript,
-  transcript_quality,
-  processing_status,
-  rights_status,
-  rights_note,
-  internal_note
-) on table public.source_private_details to authenticated;
-
-grant update (
-  raw_transcript,
-  cleaned_transcript,
-  transcript_quality,
-  processing_status,
-  rights_status,
-  rights_note,
-  internal_note
-) on table public.source_private_details to authenticated;
+) on table public.sources to anon, authenticated;
 
 grant select (
   story_id,
@@ -2256,74 +3088,25 @@ grant select (
   created_at,
   is_primary,
   relationship_type,
-  display_order,
-  updated_at
+  display_order
 ) on table public.story_places to anon, authenticated;
 
-grant insert (
-  story_id,
-  place_id,
-  is_primary,
-  relationship_type,
-  display_order
-) on table public.story_places to authenticated;
-
-grant update (
-  is_primary,
-  relationship_type,
-  display_order
-) on table public.story_places to authenticated;
-
-grant delete on table public.story_places to authenticated;
-
 grant select (
   story_id,
   theme_id,
   created_at,
   relevance,
-  display_order,
-  updated_at
+  display_order
 ) on table public.story_themes to anon, authenticated;
 
-grant insert (
-  story_id,
-  theme_id,
-  relevance,
-  display_order
-) on table public.story_themes to authenticated;
-
-grant update (
-  relevance,
-  display_order
-) on table public.story_themes to authenticated;
-
-grant delete on table public.story_themes to authenticated;
-
 grant select (
   story_id,
   source_id,
   created_at,
   is_primary,
   source_role,
-  display_order,
-  updated_at
+  display_order
 ) on table public.story_sources to anon, authenticated;
-
-grant insert (
-  story_id,
-  source_id,
-  is_primary,
-  source_role,
-  display_order
-) on table public.story_sources to authenticated;
-
-grant update (
-  is_primary,
-  source_role,
-  display_order
-) on table public.story_sources to authenticated;
-
-grant delete on table public.story_sources to authenticated;
 
 grant select (user_id, role, is_active)
   on table public.editorial_memberships to authenticated;

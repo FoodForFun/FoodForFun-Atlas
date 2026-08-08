@@ -172,7 +172,7 @@ the sole authorization boundary.
 | Create or edit Places and Themes | No | Yes | Yes |
 | Approve a Story | No | Yes | Yes |
 | Schedule or publish a Story | No | No | Yes, with deliberate confirmation |
-| Edit a currently public Story | No | No | Yes, with revision capture |
+| Edit a currently public Story | No | No | Yes, with `aal2`, confirmation, and revision capture |
 | Unpublish, archive, restore, or soft-delete | No | No | Yes |
 | Hard-delete an entity | No | No | No application role |
 | Change editorial memberships | No | No | Deferred from MVP |
@@ -190,6 +190,10 @@ change audited.
   only to exclude soft-deleted or archived rows.
 - Add editorial policies alongside, not in place of, public policies.
 - Grant only the operations and columns an authenticated client needs.
+- Give authenticated non-members exactly the anonymous base-table read surface;
+  expose editorial-only columns through membership-gated views.
+- Revoke direct application writes on editorial tables and route mutations
+  through narrowly scoped functions that enforce authorization and concurrency.
 - RLS is permissive across policies by default, so review the combined effect
   of every public and editorial policy.
 - Set `created_by` and `updated_by` from `auth.uid()` in trusted database
@@ -203,16 +207,18 @@ change audited.
 editorial members may read non-deleted Stories in all workflow states;
 Publishers may also read soft-deleted rows for recovery.
 
-**Insert:** Contributor, Editor, and Publisher may insert only a `draft` Story.
-The row must be owned by `auth.uid()` and all publication, archival, deletion,
-and audit fields must begin empty.
+**Insert:** a protected creation function permits Contributor, Editor, and
+Publisher to create only a `draft` Story. The function accepts only editable
+content, derives ownership from `auth.uid()`, and leaves publication, archival,
+deletion, and audit fields empty. Direct table insertion is revoked.
 
-**Update content:** column grants exclude `status`, `published_at`,
-`published_by`, archival fields, deletion fields, ownership fields, and revision
-fields. Contributors may update their own `draft` or `needs_review` rows.
-Editors may update any non-public, non-archived row. Publishers may update any
-non-deleted row. An optimistic `lock_version` check prevents silently
-overwriting another edit.
+**Update content:** direct table updates are revoked. A protected mutation
+function accepts only editable content plus the caller's expected
+`lock_version`, locks the row, rechecks membership and ownership, and updates
+only when the version still matches. Contributors may update their own `draft`
+or `needs_review` rows. Editors may update any non-public, non-archived row.
+Publishers may update any non-deleted row; currently published Story changes
+also require `aal2` and deliberate confirmation.
 
 **Workflow transitions:** a narrowly scoped `transition_story_status` database
 function validates the current user, role, old and new states, publication
@@ -242,25 +248,29 @@ internal_note
 
 `anon` receives no privileges or policies on `source_private_details`.
 Authenticated users also receive nothing merely by being signed in. Active
-editorial members may select private details. Contributors may create and edit
-private details for their own Source while it is not connected to a public
-Story; Editors and Publishers may edit all non-deleted Source details.
+editorial members read private details through a membership-gated view.
+Protected Source functions enforce ownership, expected `lock_version`, and
+`aal2` plus confirmation when changes affect a Source attached to public
+content. Direct private-detail insertion and updates are revoked.
 
 The current sensitive columns in `sources` must keep their restrictive column
 grants during an additive backfill. Removing those legacy columns later is a
 separate destructive migration and requires explicit approval. Until then, new
 admin code must read and write only `source_private_details`.
 
-Source entity insertion and updates follow the same ownership rules as Stories.
+Source entity insertion and updates follow the same protected-function and
+optimistic-concurrency model as Stories.
 No application role can hard-delete a Source. A Publisher may soft-delete a
 Source only after the interface identifies its Story relationships; deletion
 must never cascade to a Story.
 
 ### Places and Themes
 
-All active editorial members may select admin-visible Places and Themes.
-Editors and Publishers may create and update them. Theme deactivation is an
-Editor capability; restoration and soft deletion are Publisher capabilities.
+All active editorial members may select admin-visible Places and Themes through
+membership-gated views. Editors and Publishers may create and update them only
+through protected functions with expected versions. Theme deactivation is an
+Editor capability; restoration and soft deletion are confirmed `aal2`
+Publisher capabilities.
 
 The public Place policy must exclude soft-deleted rows. Public Themes must
 remain both active and not soft-deleted. A Place or Theme with Story
@@ -271,12 +281,15 @@ must reject a relationship that would expose an unsafe location.
 ### Story relationships
 
 Keep current public relationship reads limited to publicly visible Stories.
-Active members may read all non-deleted editorial relationships. Contributor
-insert, update, and delete policies require ownership of a non-public Story.
-Editor policies require a non-public Story. Publisher policies permit
-corrections for any non-deleted Story.
+Active members read editorial relationship metadata through membership-gated
+views. Direct relationship insertion, update, and deletion are revoked.
+Protected functions require ownership of a non-public Story for Contributors,
+a non-public Story for Editors, and a non-deleted Story for Publishers. Changes
+to a published Story require Publisher `aal2`, deliberate confirmation, and a
+matching relationship `lock_version` for updates and deletions.
 
-Relationship rows should record `created_by`, `updated_at`, and `updated_by`.
+Relationship rows record `created_by`, `updated_at`, `updated_by`, and
+`lock_version`; public grants exclude these internal fields.
 Removing a relationship is a physical row deletion because it represents an
 association, not the underlying content, but a database trigger must preserve
 the deleted row in the audit history for recovery.
@@ -293,7 +306,9 @@ delete events, including actor, time, operation, record identity, and the
 before/after snapshot required for recovery. Direct `INSERT`, `UPDATE`, and
 `DELETE` are revoked from application roles. Editors may inspect ordinary
 history; Publishers may inspect sensitive Source history and restore a prior
-version through a controlled function.
+version through a controlled function. Protected audit labels are passed
+through a private backend-scoped context table writable only by trusted
+functions, rather than a caller-controlled session setting.
 
 Audit snapshots contain private content and are never public. They should have
 a documented retention and size-review policy before large transcript volumes
@@ -369,11 +384,11 @@ deliberate confirmation and database validation of required content, unique
 slug, primary Source, primary Place, Theme relationship, safe location
 precision, and any blocking rights state.
 
-Editing a currently published Story is Publisher-only in the MVP. The change is
-visible immediately after save, so the interface must warn clearly and the
-database must snapshot the prior version first. A staged-revision system for
-published Stories is valuable but deferred to avoid building a parallel content
-model before the manual workflow is proven.
+Editing a currently published Story is confirmed `aal2` Publisher-only in the
+MVP. The change is visible immediately after save, so the interface must warn
+clearly and the database must snapshot the prior version first. A staged-
+revision system for published Stories is valuable but deferred to avoid
+building a parallel content model before the manual workflow is proven.
 
 ### Preview behavior
 
@@ -492,7 +507,7 @@ test evidence, and Pull Request. No phase should be merged without review.
 | A Contributor publishes by changing `status` | Revoke lifecycle-column updates and require the validated transition function |
 | Scheduled content appears early | Preserve the database-time `published_at <= now()` public RLS boundary |
 | Guessing a preview URL reveals a draft | Require an active editor session and authorization on every preview request |
-| Concurrent editors overwrite work | `lock_version`, explicit conflict errors, and immutable revision capture |
+| Concurrent editors overwrite work | Revoke direct writes; require an expected `lock_version` in protected mutations, return explicit conflict errors, and capture immutable revisions |
 | An accidental edit or delete destroys content | Publisher-only soft deletion, append-only revisions, controlled restore, and backups |
 | Audit records expose transcripts or rights notes | No public access; restrict sensitive history to authorized roles and define retention |
 | A compromised Publisher session changes public content | TOTP `aal2`, deliberate confirmations, short sessions, audit history, and immediate offboarding |
