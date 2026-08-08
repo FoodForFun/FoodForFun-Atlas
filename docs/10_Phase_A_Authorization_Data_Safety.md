@@ -1,10 +1,10 @@
 # FoodForFun Atlas — Phase A Authorization and Data Safety
 
-**Document Version:** 0.1
+**Document Version:** 0.2
 
 **Project Version:** 0.1
 
-**Status:** Implemented on the Phase A review branch; not applied to the linked Production database
+**Status:** Foundation applied to Production; RPC privilege remediation pending review
 
 **Last Updated:** August 2026
 
@@ -15,14 +15,16 @@ approved in `09_Admin_Authentication_Architecture.md`. It does not add login,
 session handling, admin routes, admin screens, Auth configuration, users, or
 memberships.
 
-The append-only migration is:
+The append-only migrations are:
 
 ```text
 supabase/migrations/20260808090500_phase_a_authorization_foundation.sql
+supabase/migrations/20260808125100_phase_a_rpc_privilege_remediation.sql
 ```
 
-It must not be applied to the linked production database until the owner has
-reviewed the migration and security model and gives separate explicit approval.
+The foundation migration was applied to the linked Production database after
+separate owner approval. The RPC privilege remediation remains unapplied and
+requires another explicit Production approval after review and dry-run.
 
 ## Authorization model
 
@@ -54,6 +56,27 @@ No application role has direct table `INSERT`, `UPDATE`, or `DELETE` privileges
 for editorial data, can write memberships, or can hard-delete entity rows.
 Narrow mutation functions are the only application write path. Relationship
 deletion remains a protected physical association change and is audited.
+
+## Function privileges
+
+Every Phase A function has an explicit application-role classification:
+
+- public read-only helpers are executable by `anon` and `authenticated`;
+- editorial mutation RPCs are executable only by `authenticated` and continue
+  to enforce membership, role, AAL, confirmation, concurrency, and audit rules;
+- internal security helpers are executable by neither application role; and
+- trigger-only functions are executable by neither application role.
+
+The six approved read-only helpers expose only public-visibility or
+authorization booleans required by RLS. Anonymous callers cannot enter any of
+the twelve editorial mutation RPCs. Authentication alone grants an RPC entry
+point, not mutation authorization.
+
+Production migrations and Phase A functions are owned by `postgres`. The
+remediation removes `PUBLIC` and `anon` from the default function privileges
+for future `postgres`-owned functions in the `public` schema. It intentionally
+does not make a broader default change for other owners, schemas, or roles;
+future migrations must still grant each intended function explicitly.
 
 ## Lifecycle, concurrency, and workflow
 

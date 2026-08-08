@@ -4,6 +4,132 @@ create extension if not exists pgtap with schema extensions;
 
 select extensions.no_plan();
 
+create temporary table phase_a_function_privilege_expectations (
+  function_signature text primary key,
+  function_class text not null,
+  anon_execute boolean not null,
+  authenticated_execute boolean not null
+) on commit drop;
+
+insert into phase_a_function_privilege_expectations (
+  function_signature,
+  function_class,
+  anon_execute,
+  authenticated_execute
+)
+values
+  ('private.has_editorial_role(text)', 'public_read_only_helper', true, true),
+  ('private.can_read_source_private(uuid)', 'public_read_only_helper', true, true),
+  ('private.source_is_public(uuid)', 'public_read_only_helper', true, true),
+  ('private.story_is_public(uuid)', 'public_read_only_helper', true, true),
+  ('private.place_is_public(uuid)', 'public_read_only_helper', true, true),
+  ('private.theme_is_public(uuid)', 'public_read_only_helper', true, true),
+  ('public.transition_story_status(uuid,text,integer,timestamp with time zone,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.soft_delete_entity(text,uuid,integer,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.restore_soft_deleted_entity(text,uuid,integer,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.restore_editorial_revision(bigint,integer,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.restore_relationship_revision(bigint,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.set_theme_active(uuid,boolean,integer,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.create_editorial_entity(text,jsonb)', 'authenticated_editorial_rpc', false, true),
+  ('public.update_editorial_entity(text,uuid,integer,jsonb,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.update_source_private_details(uuid,integer,jsonb,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.create_story_relationship(text,uuid,uuid,jsonb,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.update_story_relationship(text,uuid,uuid,integer,jsonb,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('public.delete_story_relationship(text,uuid,uuid,integer,boolean)', 'authenticated_editorial_rpc', false, true),
+  ('private.current_editorial_role()', 'internal_security_helper', false, false),
+  ('private.publisher_has_aal2()', 'internal_security_helper', false, false),
+  ('private.can_update_story(uuid)', 'internal_security_helper', false, false),
+  ('private.can_manage_story_relationship(uuid)', 'internal_security_helper', false, false),
+  ('private.source_requires_publication_assurance(uuid)', 'internal_security_helper', false, false),
+  ('private.can_update_source(uuid)', 'internal_security_helper', false, false),
+  ('private.set_editorial_audit_operation(text)', 'internal_security_helper', false, false),
+  ('private.set_entity_metadata()', 'trigger_only_function', false, false),
+  ('private.set_relationship_metadata()', 'trigger_only_function', false, false),
+  ('private.capture_editorial_revision()', 'trigger_only_function', false, false);
+
+select extensions.is(
+  (
+    select count(*)
+    from phase_a_function_privilege_expectations as expected
+    where pg_catalog.has_function_privilege(
+      'anon',
+      expected.function_signature,
+      'EXECUTE'
+    ) is distinct from expected.anon_execute
+      or pg_catalog.has_function_privilege(
+        'authenticated',
+        expected.function_signature,
+        'EXECUTE'
+      ) is distinct from expected.authenticated_execute
+  ),
+  0::bigint,
+  'every Phase A function matches the explicit anon/authenticated privilege matrix'
+);
+select extensions.is(
+  (
+    select pg_catalog.array_agg(function_signature order by function_signature)
+    from phase_a_function_privilege_expectations
+    where pg_catalog.has_function_privilege(
+      'anon',
+      function_signature,
+      'EXECUTE'
+    )
+  ),
+  array[
+    'private.can_read_source_private(uuid)',
+    'private.has_editorial_role(text)',
+    'private.place_is_public(uuid)',
+    'private.source_is_public(uuid)',
+    'private.story_is_public(uuid)',
+    'private.theme_is_public(uuid)'
+  ]::text[],
+  'anon can execute exactly the approved public read-only helpers'
+);
+select extensions.is(
+  (
+    select count(*)
+    from phase_a_function_privilege_expectations as expected
+    join pg_catalog.pg_proc as procedure
+      on procedure.oid = expected.function_signature::regprocedure
+    cross join lateral pg_catalog.aclexplode(
+      coalesce(
+        procedure.proacl,
+        pg_catalog.acldefault('f', procedure.proowner)
+      )
+    ) as acl
+    where acl.grantee = 0
+      and acl.privilege_type = 'EXECUTE'
+  ),
+  0::bigint,
+  'no Phase A function retains PUBLIC EXECUTE'
+);
+select extensions.is(
+  (
+    select pg_catalog.array_agg(distinct pg_catalog.pg_get_userbyid(procedure.proowner))
+    from phase_a_function_privilege_expectations as expected
+    join pg_catalog.pg_proc as procedure
+      on procedure.oid = expected.function_signature::regprocedure
+  ),
+  array['postgres']::text[],
+  'postgres owns every Phase A function'
+);
+select extensions.is(
+  (
+    select count(*)
+    from pg_catalog.pg_default_acl as defaults
+    join pg_catalog.pg_namespace as namespace
+      on namespace.oid = defaults.defaclnamespace
+    cross join lateral pg_catalog.aclexplode(defaults.defaclacl) as acl
+    where defaults.defaclrole = 'postgres'::regrole
+      and defaults.defaclobjtype = 'f'
+      and namespace.nspname = 'public'
+      and acl.privilege_type = 'EXECUTE'
+      and acl.grantee in (0, 'anon'::regrole)
+  ),
+  0::bigint,
+  'future postgres-owned public functions do not default EXECUTE to PUBLIC or anon'
+);
+
 select set_config('request.jwt.claim.sub', '', true);
 select set_config('request.jwt.claims', '{}', true);
 
@@ -235,6 +361,155 @@ values
 set local role anon;
 
 select extensions.is(
+  private.has_editorial_role('contributor'),
+  false,
+  'anonymous callers may execute the role predicate without gaining a role'
+);
+select extensions.is(
+  private.can_read_source_private('50000000-0000-0000-0000-000000000001'),
+  false,
+  'anonymous callers may execute the private-read predicate without seeing data'
+);
+select extensions.throws_ok(
+  'select private.current_editorial_role()',
+  '42501',
+  'permission denied for function current_editorial_role',
+  'anonymous callers cannot enter internal security helpers'
+);
+select extensions.throws_ok(
+  'select private.set_entity_metadata()',
+  '42501',
+  'permission denied for function set_entity_metadata',
+  'anonymous callers cannot enter trigger-only functions'
+);
+select extensions.throws_ok(
+  $$select public.transition_story_status(
+      '20000000-0000-0000-0000-000000000001',
+      'draft',
+      1,
+      null,
+      false
+    )$$,
+  '42501',
+  'permission denied for function transition_story_status',
+  'anonymous callers are denied before entering Story transitions'
+);
+select extensions.throws_ok(
+  $$select public.soft_delete_entity(
+      'stories',
+      '20000000-0000-0000-0000-000000000001',
+      1,
+      false
+    )$$,
+  '42501',
+  'permission denied for function soft_delete_entity',
+  'anonymous callers are denied before entering soft deletion'
+);
+select extensions.throws_ok(
+  $$select public.restore_soft_deleted_entity(
+      'stories',
+      '20000000-0000-0000-0000-000000000001',
+      1,
+      false
+    )$$,
+  '42501',
+  'permission denied for function restore_soft_deleted_entity',
+  'anonymous callers are denied before entering soft-delete restoration'
+);
+select extensions.throws_ok(
+  'select public.restore_editorial_revision(1, 1, false)',
+  '42501',
+  'permission denied for function restore_editorial_revision',
+  'anonymous callers are denied before entering revision restoration'
+);
+select extensions.throws_ok(
+  'select public.restore_relationship_revision(1, false)',
+  '42501',
+  'permission denied for function restore_relationship_revision',
+  'anonymous callers are denied before entering relationship restoration'
+);
+select extensions.throws_ok(
+  $$select public.set_theme_active(
+      '40000000-0000-0000-0000-000000000001',
+      false,
+      1,
+      false
+    )$$,
+  '42501',
+  'permission denied for function set_theme_active',
+  'anonymous callers are denied before entering Theme lifecycle mutation'
+);
+select extensions.throws_ok(
+  $$select public.create_editorial_entity(
+      'stories',
+      '{"title":"Denied"}'::jsonb
+    )$$,
+  '42501',
+  'permission denied for function create_editorial_entity',
+  'anonymous callers are denied before entering entity creation'
+);
+select extensions.throws_ok(
+  $$select public.update_editorial_entity(
+      'stories',
+      '20000000-0000-0000-0000-000000000001',
+      1,
+      '{"summary":"Denied"}'::jsonb,
+      false
+    )$$,
+  '42501',
+  'permission denied for function update_editorial_entity',
+  'anonymous callers are denied before entering entity updates'
+);
+select extensions.throws_ok(
+  $$select public.update_source_private_details(
+      '50000000-0000-0000-0000-000000000001',
+      1,
+      '{"internal_note":"Denied"}'::jsonb,
+      false
+    )$$,
+  '42501',
+  'permission denied for function update_source_private_details',
+  'anonymous callers are denied before entering private Source updates'
+);
+select extensions.throws_ok(
+  $$select public.create_story_relationship(
+      'story_sources',
+      '20000000-0000-0000-0000-000000000001',
+      '50000000-0000-0000-0000-000000000001',
+      '{}'::jsonb,
+      false
+    )$$,
+  '42501',
+  'permission denied for function create_story_relationship',
+  'anonymous callers are denied before entering relationship creation'
+);
+select extensions.throws_ok(
+  $$select public.update_story_relationship(
+      'story_sources',
+      '20000000-0000-0000-0000-000000000001',
+      '50000000-0000-0000-0000-000000000001',
+      1,
+      '{"display_order":1}'::jsonb,
+      false
+    )$$,
+  '42501',
+  'permission denied for function update_story_relationship',
+  'anonymous callers are denied before entering relationship updates'
+);
+select extensions.throws_ok(
+  $$select public.delete_story_relationship(
+      'story_sources',
+      '20000000-0000-0000-0000-000000000001',
+      '50000000-0000-0000-0000-000000000001',
+      1,
+      false
+    )$$,
+  '42501',
+  'permission denied for function delete_story_relationship',
+  'anonymous callers are denied before entering relationship deletion'
+);
+
+select extensions.is(
   (select count(id) from public.stories),
   1::bigint,
   'anonymous users see only published, due, non-deleted Stories'
@@ -372,9 +647,141 @@ select set_config(
 set local role authenticated;
 
 select extensions.is(
-  private.current_editorial_role(),
+  (
+    select role
+    from public.editorial_memberships
+    where user_id = (select auth.uid())
+  ),
   null::text,
   'an authenticated non-member has no editorial role'
+);
+select extensions.is(
+  private.has_editorial_role('contributor'),
+  false,
+  'an authenticated non-member may execute the role predicate but gains no role'
+);
+select extensions.is(
+  private.can_read_source_private('50000000-0000-0000-0000-000000000001'),
+  false,
+  'an authenticated non-member may execute the private-read predicate but gains no access'
+);
+select extensions.throws_ok(
+  'select private.current_editorial_role()',
+  '42501',
+  'permission denied for function current_editorial_role',
+  'authenticated callers cannot enter internal security helpers directly'
+);
+select extensions.throws_ok(
+  'select private.set_entity_metadata()',
+  '42501',
+  'permission denied for function set_entity_metadata',
+  'authenticated callers cannot enter trigger-only functions directly'
+);
+select extensions.throws_ok(
+  $$select public.transition_story_status(
+      '20000000-0000-0000-0000-000000000001',
+      'draft',
+      1,
+      null,
+      false
+    )$$,
+  '42501',
+  'Editorial membership required',
+  'an authenticated non-member enters the Story RPC but fails membership authorization'
+);
+select extensions.throws_ok(
+  $$select public.update_editorial_entity(
+      'stories',
+      '20000000-0000-0000-0000-000000000001',
+      1,
+      '{"summary":"Denied"}'::jsonb,
+      false
+    )$$,
+  '42501',
+  'Story update is not permitted',
+  'an authenticated non-member enters the entity RPC but fails authorization'
+);
+select extensions.throws_ok(
+  $$select public.create_story_relationship(
+      'story_sources',
+      '20000000-0000-0000-0000-000000000001',
+      '50000000-0000-0000-0000-000000000001',
+      '{}'::jsonb,
+      false
+    )$$,
+  '42501',
+  'Story relationship update is not permitted',
+  'an authenticated non-member cannot create Story relationships'
+);
+select extensions.throws_ok(
+  $$select public.update_story_relationship(
+      'story_sources',
+      '20000000-0000-0000-0000-000000000001',
+      '50000000-0000-0000-0000-000000000001',
+      1,
+      '{"display_order":1}'::jsonb,
+      false
+    )$$,
+  '42501',
+  'Story relationship update is not permitted',
+  'an authenticated non-member cannot update Story relationships'
+);
+select extensions.throws_ok(
+  $$select public.delete_story_relationship(
+      'story_sources',
+      '20000000-0000-0000-0000-000000000001',
+      '50000000-0000-0000-0000-000000000001',
+      1,
+      false
+    )$$,
+  '42501',
+  'Story relationship deletion is not permitted',
+  'an authenticated non-member cannot delete Story relationships'
+);
+select extensions.throws_ok(
+  'select public.restore_relationship_revision(1, false)',
+  '42501',
+  'Confirmed Publisher aal2 session required',
+  'an authenticated non-member cannot restore Story relationships'
+);
+select extensions.throws_ok(
+  $$select public.soft_delete_entity(
+      'stories',
+      '20000000-0000-0000-0000-000000000001',
+      1,
+      false
+    )$$,
+  '42501',
+  'Confirmed Publisher aal2 session required',
+  'an authenticated non-member cannot soft-delete entities'
+);
+select extensions.throws_ok(
+  $$select public.restore_soft_deleted_entity(
+      'stories',
+      '20000000-0000-0000-0000-000000000001',
+      1,
+      false
+    )$$,
+  '42501',
+  'Confirmed Publisher aal2 session required',
+  'an authenticated non-member cannot restore soft-deleted entities'
+);
+select extensions.throws_ok(
+  $$select public.update_source_private_details(
+      '50000000-0000-0000-0000-000000000001',
+      1,
+      '{"internal_note":"Denied"}'::jsonb,
+      false
+    )$$,
+  '42501',
+  'Private Source update is not permitted',
+  'an authenticated non-member cannot update private Source details'
+);
+select extensions.throws_ok(
+  'select public.restore_editorial_revision(1, 1, false)',
+  '42501',
+  'Confirmed Publisher aal2 session required',
+  'an authenticated non-member cannot restore revisions'
 );
 select extensions.is(
   (select count(id) from public.stories),
@@ -429,7 +836,11 @@ select set_config(
 set local role authenticated;
 
 select extensions.is(
-  private.current_editorial_role(),
+  (
+    select role
+    from public.editorial_memberships
+    where user_id = (select auth.uid())
+  ),
   null::text,
   'an inactive membership grants no editorial role'
 );
@@ -449,7 +860,11 @@ select set_config(
 set local role authenticated;
 
 select extensions.is(
-  private.current_editorial_role(),
+  (
+    select role
+    from public.editorial_memberships
+    where user_id = (select auth.uid())
+  ),
   'contributor',
   'an active Contributor receives the Contributor role'
 );
@@ -620,7 +1035,11 @@ select set_config(
 set local role authenticated;
 
 select extensions.is(
-  private.current_editorial_role(),
+  (
+    select role
+    from public.editorial_memberships
+    where user_id = (select auth.uid())
+  ),
   'editor',
   'an active Editor receives the Editor role'
 );
@@ -720,7 +1139,11 @@ select set_config(
 set local role authenticated;
 
 select extensions.is(
-  private.current_editorial_role(),
+  (
+    select role
+    from public.editorial_memberships
+    where user_id = (select auth.uid())
+  ),
   'publisher',
   'an active AAL1 Publisher still receives the database Publisher role'
 );
@@ -810,7 +1233,11 @@ select set_config(
 set local role authenticated;
 
 select extensions.is(
-  private.current_editorial_role(),
+  (
+    select role
+    from public.editorial_memberships
+    where user_id = (select auth.uid())
+  ),
   'publisher',
   'an active Publisher receives the Publisher role'
 );
