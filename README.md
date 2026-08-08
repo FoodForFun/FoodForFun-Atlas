@@ -49,7 +49,10 @@ The server-rendered homepage presents a bounded selection of published Stories a
 
 `/stories/[slug]` displays one publicly readable Story with its related Places, active Themes, and public Source metadata. Place and Theme detail pages connect visitors back to related published Stories. Search covers Story titles and summaries, Place names, and Theme names, with bounded groups for each public record type. These read-only queries select only the fields needed by each page and rely on database Row Level Security and column grants to exclude drafts, future publications, inactive Themes, Source transcripts, and internal Source fields.
 
-Database writes, authentication, and administration are not implemented yet.
+The public application still has no database writes, authentication, or
+administration. The Phase A database authorization foundation is implemented in
+an unapplied migration pending owner review; authentication UI and admin screens
+remain deferred.
 
 ## Project Documentation
 
@@ -58,7 +61,8 @@ Database writes, authentication, and administration are not implemented yet.
 - [MVP Scope](docs/02_MVP_Scope.md)
 - [Data Model](docs/03_Data_Model.md)
 - [Admin Workflow](docs/04_Admin_Workflow.md)
-- [Admin and Authentication Architecture Proposal](docs/09_Admin_Authentication_Architecture.md)
+- [Approved Admin and Authentication Architecture](docs/09_Admin_Authentication_Architecture.md)
+- [Phase A Authorization and Data Safety](docs/10_Phase_A_Authorization_Data_Safety.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
