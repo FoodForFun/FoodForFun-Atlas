@@ -152,18 +152,14 @@ Each requires explicit owner approval immediately before execution.
    application key, create additional memberships, or submit actor IDs.
 7. The owner follows the invite, sets a unique password, and verifies that AAL1
    login reaches `/admin` while a session without the membership does not.
-8. Before the Publisher performs any publication-level action, implement and
-   review a narrowly scoped TOTP screen, then obtain separate approval for the
-   owner's enrollment. From the owner's AAL1 session, call
-   `supabase.auth.mfa.enroll({ factorType: "totp" })` once, show the returned QR
-   code only to the owner, create a challenge for that factor, and verify the
-   owner-entered TOTP code with the returned factor and challenge IDs. On later
-   logins, use `listFactors`, `challenge`, and `verify` whenever the current AAL
-   is `aal1` and the next AAL is `aal2`. Confirm fresh verified claims and the
-   shell both report `AAL2`. Phase B displays assurance state but intentionally
-   does not add MFA enrollment or challenge UI. Phase A mutation functions
-   continue rejecting Publisher AAL1 for publication, destructive recovery,
-   and protected public corrections.
+8. Review and merge the separate Phase B.5 TOTP MFA Pull Request, then obtain
+   explicit approval for Production TOTP settings and the owner's enrollment.
+   Use the member-only `/admin/mfa/enroll` flow from the owner's AAL1 session,
+   keep the QR code and setup secret visible only to the owner, and verify a
+   current code. On later password logins, complete `/admin/mfa/challenge` when
+   the current AAL is `aal1` and the next AAL is `aal2`. Confirm the MFA status
+   page reports `AAL2`. Phase A mutation functions continue rejecting Publisher
+   AAL1 for publication, destructive recovery, and protected public corrections.
 9. Verify sign-out, session expiry, membership deactivation, and session
    revocation. Offboarding deactivates membership first and revokes Auth
    sessions second.
@@ -177,10 +173,12 @@ Real owner login cannot be exercised until the owner separately approves:
 - production SMTP or email-delivery configuration;
 - creation and invitation of the owner Auth user;
 - insertion of the single Publisher membership; and
-- a TOTP enrollment/challenge mechanism and the owner's MFA enrollment.
+- enabling Production TOTP enrollment and verification; and
+- the owner's MFA enrollment and first AAL2 verification.
 
-The Phase B application does not perform any of these operations. Until an
-isolated Auth environment is available, Contributor, Editor, Publisher,
-inactive-member, and authenticated non-member browser sessions can be verified
-only through pure authorization tests, Phase A database tests, code review, and
-Production catalog state—not by creating test identities in Production.
+The Phase B.5 application provides the enrollment and challenge mechanism but
+does not perform these Production operations autonomously. Until an isolated
+Auth environment is available, Contributor, Editor, Publisher, inactive-member,
+authenticated non-member, and end-to-end TOTP sessions can be verified only
+through focused tests, code review, and approved non-Production identities—not
+by creating test identities or factors in Production.

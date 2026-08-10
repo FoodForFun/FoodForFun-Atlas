@@ -1,7 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 
+import { getActiveEditorialRole } from "@/app/_lib/auth/membership";
 import { getSafeAdminRedirect } from "@/app/_lib/auth/redirects";
 import { getSiteUrl } from "@/app/_lib/auth/site-url";
 import { createAuthenticatedServerSupabaseClient } from "@/app/_lib/supabase/auth-server";
@@ -36,6 +37,8 @@ export async function signInAction(
     };
   }
 
+  let shouldChallengeMfa = false;
+
   try {
     const supabase = await createAuthenticatedServerSupabaseClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -46,11 +49,48 @@ export async function signInAction(
         status: "error",
       };
     }
+
+    try {
+      const { data: claimsData } = await supabase.auth.getClaims();
+      const userId =
+        typeof claimsData?.claims?.sub === "string"
+          ? claimsData.claims.sub
+          : null;
+
+      if (userId) {
+        const { data: membership, error: membershipError } = await supabase
+          .from("editorial_memberships")
+          .select("role, is_active")
+          .eq("user_id", userId)
+          .maybeSingle();
+        const role = membershipError
+          ? null
+          : getActiveEditorialRole(membership);
+
+        if (role) {
+          const assuranceResult =
+            await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+          shouldChallengeMfa =
+            !assuranceResult.error &&
+            assuranceResult.data?.currentLevel === "aal1" &&
+            assuranceResult.data.nextLevel === "aal2";
+        }
+      }
+    } catch {
+      // The destination repeats authoritative membership and session checks.
+      // MFA discovery must not turn a successful password sign-in into an
+      // ambiguous failure or grant access by itself.
+    }
   } catch {
     return {
       message: "Sign-in is temporarily unavailable. Please try again later.",
       status: "error",
     };
+  }
+
+  if (shouldChallengeMfa) {
+    redirect(`/admin/mfa/challenge?next=${encodeURIComponent(next)}`);
   }
 
   redirect(next);
@@ -160,6 +200,6 @@ export async function signOutAction() {
     const supabase = await createAuthenticatedServerSupabaseClient();
     await supabase.auth.signOut({ scope: "local" });
   } finally {
-    redirect("/admin/login?status=signed-out");
+    redirect("/admin/login?status=signed-out", RedirectType.replace);
   }
 }
