@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { formatEditorialRole } from "@/app/_lib/auth/membership";
+import { getAdminMfaState } from "@/app/_lib/auth/mfa-server";
 import { requireEditorialAccess } from "@/app/_lib/auth/session";
 import { SignOutForm } from "@/app/admin/_components/sign-out-form";
 
@@ -12,6 +13,7 @@ type AdminPageProps = {
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const access = await requireEditorialAccess("/admin");
+  const mfa = await getAdminMfaState();
   const parameters = await searchParams;
   const status = Array.isArray(parameters.status)
     ? parameters.status[0]
@@ -34,6 +36,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </p>
       ) : null}
 
+      {mfa.sessionState === "challenge-required" ? (
+        <p className="admin-status-banner" role="status">
+          This session is AAL1. A verified authenticator is available.{" "}
+          <Link href="/admin/mfa/challenge">Verify the session for AAL2</Link>.
+        </p>
+      ) : null}
+
+      {access.role === "publisher" &&
+      mfa.sessionState === "enrollment-required" ? (
+        <p className="admin-status-banner" role="status">
+          Publisher-sensitive operations require AAL2.{" "}
+          <Link href="/admin/mfa/enroll">Enroll a TOTP authenticator</Link>{" "}
+          before publication-level work begins.
+        </p>
+      ) : null}
+
       <section className="admin-session" aria-labelledby="session-heading">
         <div>
           <p className="eyebrow">Current session</p>
@@ -50,7 +68,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
           <div>
             <dt>Session assurance</dt>
-            <dd>{access.identity.aal.toUpperCase()}</dd>
+            <dd>{mfa.currentLevel.toUpperCase()}</dd>
           </div>
         </dl>
       </section>
@@ -61,11 +79,27 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           {editorialSections.map((section) => (
             <li key={section}>
               <span>{section}</span>
-              <small>Not available in Phase B</small>
+              <small>Planned for Phase C</small>
             </li>
           ))}
         </ul>
       </nav>
+
+      <section className="admin-mfa-summary" aria-labelledby="security-heading">
+        <div>
+          <p className="eyebrow">Account security</p>
+          <h2 id="security-heading">Multi-factor authentication</h2>
+        </div>
+        <div>
+          <p>
+            Review enrolled authenticators and verify the assurance level needed
+            for sensitive Publisher operations.
+          </p>
+          <Link className="admin-primary-link" href="/admin/mfa">
+            View MFA status
+          </Link>
+        </div>
+      </section>
 
       <footer className="admin-footer">
         <Link href="/">Return to the public Atlas</Link>

@@ -57,8 +57,10 @@ The public application still has no database writes. Phase A database
 authorization and RPC privilege remediation are applied in Production. Phase B
 adds invite-only Supabase email/password authentication and a minimal `/admin`
 shell that requires an active database membership; it does not add content
-editing or user management. Production Auth provisioning and configuration
-remain separate owner-approved operational steps.
+editing or user management. Phase B.5 adds member-only TOTP enrollment,
+challenge, and MFA status routes so Publisher sessions can reach `aal2` before
+sensitive work. Production Auth provisioning, TOTP settings, and owner
+enrollment remain separate owner-approved operational steps.
 
 ## Project Documentation
 
@@ -70,6 +72,7 @@ remain separate owner-approved operational steps.
 - [Approved Admin and Authentication Architecture](docs/09_Admin_Authentication_Architecture.md)
 - [Phase A Authorization and Data Safety](docs/10_Phase_A_Authorization_Data_Safety.md)
 - [Phase B Authentication and Admin Shell](docs/11_Phase_B_Authentication_Admin_Shell.md)
+- [Phase B.5 Publisher MFA](docs/12_Phase_B5_Publisher_MFA.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)

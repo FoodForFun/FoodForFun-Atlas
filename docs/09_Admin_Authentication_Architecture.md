@@ -1,6 +1,6 @@
 # FoodForFun Atlas — Admin and Authentication Architecture
 
-**Document Version:** 0.2
+**Document Version:** 0.3
 
 **Project Version:** 0.1
 
@@ -16,11 +16,11 @@ routes, editorial writes, publication, private Source data, recovery, and
 future image uploads.
 
 All twelve owner decisions in Section 10 are approved. Phase A is implemented,
-merged, and applied to Production. Phase B implementation is separately
-authorized through a review-only Pull Request. This does not authorize changing
-Production Supabase Auth configuration, handling Production secrets,
-provisioning Production users or memberships, sending invitations, enrolling
-MFA, beginning Phase C, or merging the Phase B Pull Request.
+merged, and applied to Production. Phase B is implemented, merged, and deployed.
+Phase B.5 implements the reviewed TOTP application flow. It does not authorize
+changing Production Supabase Auth configuration, handling Production secrets,
+provisioning Production users or memberships, sending invitations, enrolling a
+Production factor, beginning Phase C, or merging the Phase B.5 Pull Request.
 
 For the initial MVP rollout, retain Contributor, Editor, and Publisher in the
 database authorization model while provisioning only the owner as Publisher.
@@ -459,6 +459,19 @@ test evidence, and Pull Request. No phase should be merged without review.
   operational step;
 - verify caching, token refresh, route protection, direct Server Action calls,
   and public-route regressions.
+
+### Phase B.5 — Publisher TOTP MFA
+
+- add member-only MFA status, enrollment, and challenge routes using Supabase
+  Auth TOTP APIs and the existing cookie-backed SSR client;
+- keep the basic Admin Shell available at AAL1 while requiring AAL2 at both the
+  application action boundary and the Phase A database boundary for future
+  Publisher-sensitive operations;
+- verify factor ownership server-side, restrict return paths to local Admin
+  routes, keep enrollment secrets out of URLs and logs, and fail closed when
+  factor, challenge, session, or membership state is invalid;
+- configure and enroll the Production owner only through a separately approved
+  operational step after the Phase B.5 Pull Request is reviewed.
 
 ### Phase C — Source management
 
