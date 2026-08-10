@@ -34,13 +34,14 @@ export class AdminAuthorizationError extends Error {
 function getIdentityFromClaims(claims: Record<string, unknown>) {
   const userId = typeof claims.sub === "string" ? claims.sub : null;
   const email = typeof claims.email === "string" ? claims.email : null;
+  const aal = claims.aal === "aal1" || claims.aal === "aal2" ? claims.aal : null;
 
-  if (!userId || !email) {
+  if (!userId || !email || !aal) {
     return null;
   }
 
   return {
-    aal: claims.aal === "aal2" ? "aal2" : "aal1",
+    aal,
     email,
     userId,
   } satisfies AuthenticatedIdentity;

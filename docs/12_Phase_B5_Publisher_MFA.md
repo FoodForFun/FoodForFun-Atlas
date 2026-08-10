@@ -31,24 +31,33 @@ dependency.
 | `/admin/mfa/challenge` | Challenge a verified TOTP factor and reach AAL2 | Active editorial membership and an owned verified TOTP factor |
 
 The Admin layout is dynamic with zero revalidation, and the root proxy applies
-`private, no-store` headers to Admin responses. Every page and Server Action
-repeats the authoritative server-side membership check. An authenticated
-non-member is redirected to the generic access-denied route and cannot use an
-MFA route as an alternate Admin entry point.
+`private, no-store` headers to Admin responses, including Server Action POST
+responses matched under `/admin`. Every page and Server Action repeats the
+authoritative server-side membership check. An authenticated non-member is
+redirected to the generic access-denied route and cannot use an MFA route as an
+alternate Admin entry point.
 
 ## Enrollment flow
 
 1. An active editorial member opens `/admin/mfa/enroll` at AAL1.
-2. The start action lists factors for the current Supabase user. A verified TOTP
-   factor stops duplicate enrollment and sends the user to status or challenge.
-3. Unverified TOTP factors left by an interrupted setup are removed before a
-   replacement enrollment begins. A cleanup failure stops the flow without
-   creating another factor.
+2. The start action verifies signed JWT claims, binds those claims to the same
+   active editorial member authorized for the action, requires the exact
+   `aal1` to `aal1` enrollment state, and lists factors from Supabase for that
+   user. Browser-supplied user IDs and factor inventories are never accepted.
+3. Exactly one unverified TOTP factor left by an interrupted setup is removed
+   before a replacement enrollment begins. The action re-lists factors after
+   cleanup and requires an empty, unambiguous inventory before enrolling. A
+   cleanup failure stops the flow without creating another factor.
 4. `auth.mfa.enroll()` creates one unverified TOTP factor. Its QR code and
    manual setup secret are returned only in the authenticated action response
-   and rendered on the no-store enrollment page. They are not written to the
-   database by the application, persisted in application storage, placed in a
-   URL, or included in logs, analytics, console messages, or errors.
+   and rendered on the no-store enrollment page only after the QR source matches
+   Supabase Auth's bounded SVG data-URI format and the secret matches a bounded
+   Base32 format. They are not written to the database by the application,
+   persisted in application storage, placed in a URL, or included in logs,
+   analytics, console messages, errors, or cookies.
+   The response is private and no-store. The secret necessarily exists in the
+   enrollment tab's in-memory React action state while the owner scans or
+   retries the current setup; it is not application-persisted.
 5. The user enters the current six-digit code. The server lists the user's
    factors again and accepts the submitted factor ID only when it belongs to the
    current user, is TOTP, and is still unverified.
@@ -56,13 +65,38 @@ MFA route as an alternate Admin entry point.
    Challenge IDs never come from browser input. Invalid, expired, malformed, or
    unavailable challenges return generic retry guidance and do not activate the
    factor.
-7. Success must produce a fresh `currentLevel` of `aal2`; otherwise the action
-   fails closed. Supabase marks the factor verified, refreshes the session, and
-   invalidates the user's other sessions as part of enrollment verification.
+7. On a successful Supabase verification response, the action checks that the
+   response user is the authorized member, cryptographically verifies the new
+   access token with `getClaims(accessToken)`, and independently verifies the
+   current saved session claims. Both claim sets must identify the same member
+   and contain `aal2`. A locally decoded assurance helper or URL status is not
+   sufficient. If AAL2 cannot be confirmed, the action replaces the enrollment
+   history entry with the authoritative status page and does not proceed to a
+   sensitive destination.
 
 Reloading an interrupted enrollment intentionally discards the displayed
 secret. Starting again removes the old unverified factor and returns a new QR
-code and secret. The old secret must not be reused.
+code and secret. Successful completion, restart, explicit exit, and sign-out
+use replacement navigation so the secret-bearing history entry is not retained.
+The old secret must not be reused.
+
+### Factor inventory decisions
+
+| Current factor inventory | Enrollment behavior |
+| --- | --- |
+| No factor | Enrollment may start only for the exact verified `aal1` to `aal1` session state |
+| One verified TOTP | Refuse replacement; use status or the later-session challenge |
+| One unverified TOTP | Treat as one interrupted setup, remove that owned unverified factor, re-list, then create one replacement |
+| Multiple unverified factors | Fail closed; do not delete or add factors |
+| Verified plus unverified factors | Fail closed; do not replace or clean up through the application |
+| Unsupported type, duplicate ID, malformed ID, or unknown status | Fail closed as an ambiguous inventory |
+| Multiple verified TOTP factors | Enrollment is refused; the challenge flow may select one owned verified TOTP factor |
+
+Cleanup IDs come only from a fresh `listFactors()` response for the JWT-bound
+user. The cleanup path never accepts a factor ID from a URL or form, never calls
+unenroll for a verified factor, and re-lists the current user's factors before
+creating a replacement. These bounds prevent the normal application flow from
+accumulating abandoned factors while preserving verified factors.
 
 ## Later-session challenge flow
 
@@ -74,7 +108,12 @@ After password sign-in, the server checks active membership and calls
 The challenge action lists the signed-in user's verified factors and rejects an
 unknown, malformed, unverified, non-TOTP, or other user's factor ID. It creates
 a fresh challenge on the server for each submission, verifies the current code,
-and confirms that the resulting session is AAL2 before redirecting.
+and confirms signed JWT claims for both the returned access token and refreshed
+current session are AAL2 for the same member before redirecting. Challenge IDs
+are never accepted from the browser. Supabase remains authoritative for
+challenge expiration, one-time use, and TOTP replay behavior; an expired,
+already-used, or otherwise rejected challenge produces no redirect to the
+sensitive destination.
 
 The challenge page includes a link to continue to the basic Admin Shell at
 AAL1. This preserves the approved distinction between ordinary Admin access and
@@ -91,11 +130,30 @@ functions remain the final non-bypassable AAL2 boundary.
 | `aal2` | `aal2` | One or more | Session verified for AAL2 checks |
 | Any inconsistent combination | Any | Any | Stale session; sign out and sign in again |
 
+Null, unknown, mismatched, or error results fail closed. MFA pages compare the
+assurance helper's current level with cryptographically verified JWT claims.
+The enrollment-complete banner is shown only when the freshly evaluated server
+state is also `verified`; adding `?status=enrolled` to a URL cannot assert AAL2.
+
 Contributor and Editor membership behavior is unchanged. MFA enrollment remains
 available to every active editorial member, but the approved MVP policy makes
 TOTP AAL2 mandatory for Publisher publication-level and destructive recovery
 operations. Authentication or AAL never substitutes for active membership or
 database authorization.
+
+Every MFA Server Action repeats verified authentication, active database
+membership authorization, factor-list retrieval, exact AAL preconditions, and
+factor ownership/state checks. Proxy and page rendering are not trusted as
+authorization boundaries. A non-member therefore cannot invoke the Atlas MFA
+actions directly. A signed-in Supabase user may still call that project's
+public Auth MFA API outside this application if the project's Auth configuration
+allows it; that is an Auth-account capability, not access to FoodForFun Atlas
+Admin UI, membership, or editorial data.
+
+Server Actions use Next.js POST-only action handling and its Origin versus Host
+or `X-Forwarded-Host` comparison. No custom MFA Route Handler or cross-origin
+mutation endpoint exists, and `serverActions.allowedOrigins` is not broadened.
+No additional CSRF exception is required for this deployment topology.
 
 ## Logout and recovery
 
@@ -104,6 +162,17 @@ session cookies, and returns to `/admin/login`. Losing the authenticator does
 not grant a bypass. Factor recovery or removal is an owner-controlled Supabase
 Dashboard operation until a separately reviewed recovery design exists.
 Supabase does not currently provide recovery codes through the TOTP MFA API.
+
+If enrollment cannot be completed, the owner may restart only when exactly one
+owned unverified TOTP factor exists; ambiguous inventories require Dashboard or
+Auth-admin inspection. If an enrolled factor is lost or no valid code can be
+produced, the AAL1 Admin Shell remains available but Publisher-sensitive AAL2
+operations remain denied. An authorized project owner must verify the account
+identity out of band and remove or recover the factor through Supabase's trusted
+administrative surface. PR #50 intentionally contains no user-facing disable or
+unenroll control. A future self-service removal design must separately require
+recent AAL2, active membership, explicit confirmation, audit/recovery review,
+and protection against removing the last usable factor.
 
 ## Owner provisioning sequence
 

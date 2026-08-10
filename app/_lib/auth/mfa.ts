@@ -7,6 +7,11 @@ export type MfaFactorSummary = {
   status: string;
 };
 
+export type TotpFactorInventory = {
+  unverified: MfaFactorSummary[];
+  verified: MfaFactorSummary[];
+};
+
 export type MfaSessionState =
   | "challenge-required"
   | "enrollment-required"
@@ -15,6 +20,7 @@ export type MfaSessionState =
 
 const factorIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const totpQrCodePrefix = "data:image/svg+xml;utf-8,";
 
 export function isTotpCode(value: string) {
   return /^\d{6}$/.test(value);
@@ -22,6 +28,40 @@ export function isTotpCode(value: string) {
 
 export function isPlausibleFactorId(value: string) {
   return factorIdPattern.test(value);
+}
+
+export function isSafeTotpEnrollmentSecret(value: string) {
+  return value.length >= 16 && value.length <= 128 && /^[a-z2-7]+$/i.test(value);
+}
+
+export function isSafeTotpQrCode(value: string) {
+  return value.length <= 100_000 && value.startsWith(totpQrCodePrefix);
+}
+
+export function getTotpFactorInventory(
+  factors: MfaFactorSummary[],
+): TotpFactorInventory | null {
+  const factorIds = new Set<string>();
+  const inventory: TotpFactorInventory = {
+    unverified: [],
+    verified: [],
+  };
+
+  for (const factor of factors) {
+    if (
+      factor.factor_type !== "totp" ||
+      !isPlausibleFactorId(factor.id) ||
+      factorIds.has(factor.id) ||
+      (factor.status !== "unverified" && factor.status !== "verified")
+    ) {
+      return null;
+    }
+
+    factorIds.add(factor.id);
+    inventory[factor.status].push(factor);
+  }
+
+  return inventory;
 }
 
 export function findOwnedTotpFactor(

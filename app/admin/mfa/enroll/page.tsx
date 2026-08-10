@@ -1,20 +1,26 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getAdminMfaState } from "@/app/_lib/auth/mfa-server";
 import { requireEditorialAccess } from "@/app/_lib/auth/session";
 import { SignOutForm } from "@/app/admin/_components/sign-out-form";
-import { MfaEnrollmentForm } from "@/app/admin/mfa/_components/enrollment-form";
+import {
+  MfaEnrollmentExitLinks,
+  MfaEnrollmentForm,
+} from "@/app/admin/mfa/_components/enrollment-form";
 
 export default async function MfaEnrollmentPage() {
-  await requireEditorialAccess("/admin/mfa/enroll");
-  const mfa = await getAdminMfaState();
+  const access = await requireEditorialAccess("/admin/mfa/enroll");
+  const mfa = await getAdminMfaState(access.identity.userId);
 
   if (mfa.verifiedTotpFactors.length > 0) {
     if (mfa.sessionState === "challenge-required") {
       redirect("/admin/mfa/challenge?next=%2Fadmin%2Fmfa");
     }
 
+    redirect("/admin/mfa");
+  }
+
+  if (mfa.sessionState !== "enrollment-required") {
     redirect("/admin/mfa");
   }
 
@@ -29,10 +35,7 @@ export default async function MfaEnrollmentPage() {
           not reach AAL2 until verification succeeds.
         </p>
         <MfaEnrollmentForm />
-        <div className="admin-auth-links">
-          <Link href="/admin/mfa">Return to MFA status</Link>
-          <Link href="/admin">Continue to the basic admin shell</Link>
-        </div>
+        <MfaEnrollmentExitLinks />
         <SignOutForm />
       </section>
     </main>

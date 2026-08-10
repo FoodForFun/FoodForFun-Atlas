@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { type MouseEvent, useActionState } from "react";
 
 import { SubmitButton } from "@/app/admin/_components/submit-button";
 import {
@@ -11,6 +11,24 @@ import {
   startTotpEnrollmentAction,
   verifyTotpEnrollmentAction,
 } from "@/app/admin/mfa/actions";
+
+function replaceCurrentPage(event: MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault();
+  window.location.replace(event.currentTarget.href);
+}
+
+export function MfaEnrollmentExitLinks() {
+  return (
+    <div className="admin-auth-links">
+      <a href="/admin/mfa" onClick={replaceCurrentPage}>
+        Return to MFA status
+      </a>
+      <a href="/admin" onClick={replaceCurrentPage}>
+        Continue to the basic admin shell
+      </a>
+    </div>
+  );
+}
 
 function EnrollmentVerificationForm({ factorId }: { factorId: string }) {
   const [state, formAction] = useActionState(
@@ -92,7 +110,11 @@ export function MfaEnrollmentForm() {
         <p>Do not copy this secret into messages, logs, or screenshots.</p>
       </details>
       <EnrollmentVerificationForm factorId={state.setup.factorId} />
-      <a className="admin-secondary-link" href="/admin/mfa/enroll?restart=1">
+      <a
+        className="admin-secondary-link"
+        href="/admin/mfa/enroll?restart=1"
+        onClick={replaceCurrentPage}
+      >
         Restart setup
       </a>
     </div>

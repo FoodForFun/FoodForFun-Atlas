@@ -14,20 +14,28 @@ type MfaChallengePageProps = {
 export default async function MfaChallengePage({
   searchParams,
 }: MfaChallengePageProps) {
-  await requireEditorialAccess("/admin/mfa/challenge");
+  const access = await requireEditorialAccess("/admin/mfa/challenge");
   const parameters = await searchParams;
   const requestedNext = Array.isArray(parameters.next)
     ? parameters.next[0]
     : parameters.next;
   const next = getSafeAdminRedirect(requestedNext);
-  const mfa = await getAdminMfaState();
+  const mfa = await getAdminMfaState(access.identity.userId);
 
   if (mfa.sessionState === "verified") {
     redirect(next);
   }
 
   if (mfa.verifiedTotpFactors.length === 0) {
-    redirect("/admin/mfa/enroll");
+    redirect(
+      mfa.sessionState === "enrollment-required"
+        ? "/admin/mfa/enroll"
+        : "/admin/mfa",
+    );
+  }
+
+  if (mfa.sessionState !== "challenge-required") {
+    redirect("/admin/mfa");
   }
 
   return (

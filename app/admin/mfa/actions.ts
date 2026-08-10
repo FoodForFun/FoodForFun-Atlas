@@ -1,10 +1,14 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 
 import {
   findOwnedTotpFactor,
+  getTotpFactorInventory,
+  isSafeTotpEnrollmentSecret,
+  isSafeTotpQrCode,
   isTotpCode,
+  type MfaAssuranceLevel,
 } from "@/app/_lib/auth/mfa";
 import { getSafeAdminRedirect } from "@/app/_lib/auth/redirects";
 import { requireEditorialAccess } from "@/app/_lib/auth/session";
@@ -22,7 +26,7 @@ function readFormValue(formData: FormData, name: string) {
 function mfaUnavailableState(): MfaActionState {
   return {
     message:
-      "Authenticator verification is temporarily unavailable. No security change was completed. Please try again.",
+      "Authenticator security state could not be confirmed. Return to MFA status and try again.",
     status: "error",
   };
 }
@@ -35,21 +39,106 @@ function invalidCodeState(): MfaActionState {
   };
 }
 
+type AuthenticatedSupabaseClient = Awaited<
+  ReturnType<typeof createAuthenticatedServerSupabaseClient>
+>;
+
+function isKnownAal(value: string | null): value is MfaAssuranceLevel {
+  return value === "aal1" || value === "aal2";
+}
+
+async function getBoundMfaAssurance(
+  supabase: AuthenticatedSupabaseClient,
+  expectedUserId: string,
+) {
+  const claimsResult = await supabase.auth.getClaims();
+
+  if (
+    claimsResult.error ||
+    !claimsResult.data?.claims ||
+    claimsResult.data.claims.sub !== expectedUserId
+  ) {
+    return null;
+  }
+
+  const claimsAal =
+    typeof claimsResult.data.claims.aal === "string"
+      ? claimsResult.data.claims.aal
+      : null;
+
+  if (!isKnownAal(claimsAal)) {
+    return null;
+  }
+
+  const assuranceResult =
+    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+  if (
+    assuranceResult.error ||
+    !assuranceResult.data ||
+    !isKnownAal(assuranceResult.data.currentLevel) ||
+    !isKnownAal(assuranceResult.data.nextLevel) ||
+    assuranceResult.data.currentLevel !== claimsAal
+  ) {
+    return null;
+  }
+
+  return assuranceResult.data;
+}
+
+async function hasAuthoritativeAal2Session(
+  supabase: AuthenticatedSupabaseClient,
+  expectedUserId: string,
+  accessToken: string,
+) {
+  const verifiedTokenClaims = await supabase.auth.getClaims(accessToken);
+  const currentSessionClaims = await supabase.auth.getClaims();
+
+  return [verifiedTokenClaims, currentSessionClaims].every(
+    (result) =>
+      !result.error &&
+      result.data?.claims.sub === expectedUserId &&
+      result.data.claims.aal === "aal2",
+  );
+}
+
 export async function startTotpEnrollmentAction(
   _state: MfaEnrollmentActionState,
 ): Promise<MfaEnrollmentActionState> {
   void _state;
-  await requireEditorialAccess("/admin/mfa/enroll");
+  const access = await requireEditorialAccess("/admin/mfa/enroll");
 
   try {
     const supabase = await createAuthenticatedServerSupabaseClient();
+    const assurance = await getBoundMfaAssurance(
+      supabase,
+      access.identity.userId,
+    );
+
+    if (
+      !assurance ||
+      assurance.currentLevel !== "aal1" ||
+      assurance.nextLevel !== "aal1"
+    ) {
+      return mfaUnavailableState();
+    }
+
     const factorsResult = await supabase.auth.mfa.listFactors();
 
     if (factorsResult.error || !factorsResult.data) {
       return mfaUnavailableState();
     }
 
-    if (factorsResult.data.totp.length > 0) {
+    const factorInventory = getTotpFactorInventory(factorsResult.data.all);
+
+    if (!factorInventory) {
+      return mfaUnavailableState();
+    }
+
+    if (
+      factorInventory.verified.length === 1 &&
+      factorInventory.unverified.length === 0
+    ) {
       return {
         message:
           "A verified authenticator is already enrolled. Use the MFA challenge page to verify this session.",
@@ -57,19 +146,42 @@ export async function startTotpEnrollmentAction(
       };
     }
 
-    const interruptedTotpFactors = factorsResult.data.all.filter(
-      (factor) =>
-        factor.factor_type === "totp" && factor.status === "unverified",
-    );
+    if (
+      factorInventory.verified.length > 0 ||
+      factorInventory.unverified.length > 1
+    ) {
+      return mfaUnavailableState();
+    }
 
-    for (const factor of interruptedTotpFactors) {
+    for (const factor of factorInventory.unverified) {
       const cleanupResult = await supabase.auth.mfa.unenroll({
         factorId: factor.id,
       });
 
-      if (cleanupResult.error) {
+      if (cleanupResult.error || cleanupResult.data?.id !== factor.id) {
         return mfaUnavailableState();
       }
+    }
+
+    const cleanedFactorsResult = await supabase.auth.mfa.listFactors();
+    const cleanedAssurance = await getBoundMfaAssurance(
+      supabase,
+      access.identity.userId,
+    );
+    const cleanedInventory = cleanedFactorsResult.data
+      ? getTotpFactorInventory(cleanedFactorsResult.data.all)
+      : null;
+
+    if (
+      cleanedFactorsResult.error ||
+      !cleanedInventory ||
+      cleanedInventory.verified.length !== 0 ||
+      cleanedInventory.unverified.length !== 0 ||
+      !cleanedAssurance ||
+      cleanedAssurance.currentLevel !== "aal1" ||
+      cleanedAssurance.nextLevel !== "aal1"
+    ) {
+      return mfaUnavailableState();
     }
 
     const enrollmentResult = await supabase.auth.mfa.enroll({
@@ -83,8 +195,23 @@ export async function startTotpEnrollmentAction(
       !enrollmentResult.data ||
       enrollmentResult.data.type !== "totp" ||
       !enrollmentResult.data.id ||
-      !enrollmentResult.data.totp.qr_code ||
-      !enrollmentResult.data.totp.secret
+      !isSafeTotpQrCode(enrollmentResult.data.totp.qr_code) ||
+      !isSafeTotpEnrollmentSecret(enrollmentResult.data.totp.secret)
+    ) {
+      return mfaUnavailableState();
+    }
+
+    const enrolledFactorsResult = await supabase.auth.mfa.listFactors();
+    const enrolledInventory = enrolledFactorsResult.data
+      ? getTotpFactorInventory(enrolledFactorsResult.data.all)
+      : null;
+
+    if (
+      enrolledFactorsResult.error ||
+      !enrolledInventory ||
+      enrolledInventory.verified.length !== 0 ||
+      enrolledInventory.unverified.length !== 1 ||
+      enrolledInventory.unverified[0].id !== enrollmentResult.data.id
     ) {
       return mfaUnavailableState();
     }
@@ -108,7 +235,8 @@ export async function verifyTotpEnrollmentAction(
   _state: MfaActionState,
   formData: FormData,
 ): Promise<MfaActionState> {
-  await requireEditorialAccess("/admin/mfa/enroll");
+  void _state;
+  const access = await requireEditorialAccess("/admin/mfa/enroll");
 
   const code = readFormValue(formData, "code");
   const factorId = readFormValue(formData, "factor_id");
@@ -117,15 +245,30 @@ export async function verifyTotpEnrollmentAction(
     return invalidCodeState();
   }
 
+  let aal2Confirmed = false;
+  let verificationSucceeded = false;
+
   try {
     const supabase = await createAuthenticatedServerSupabaseClient();
+    const assurance = await getBoundMfaAssurance(
+      supabase,
+      access.identity.userId,
+    );
     const factorsResult = await supabase.auth.mfa.listFactors();
+    const factorInventory = factorsResult.data
+      ? getTotpFactorInventory(factorsResult.data.all)
+      : null;
 
     if (
+      !assurance ||
+      assurance.currentLevel !== "aal1" ||
+      assurance.nextLevel !== "aal1" ||
       factorsResult.error ||
-      !factorsResult.data ||
+      !factorInventory ||
+      factorInventory.verified.length !== 0 ||
+      factorInventory.unverified.length !== 1 ||
       !findOwnedTotpFactor(
-        factorsResult.data.all,
+        factorInventory.unverified,
         factorId,
         "unverified",
       )
@@ -149,31 +292,39 @@ export async function verifyTotpEnrollmentAction(
       factorId,
     });
 
-    if (verifyResult.error) {
+    if (
+      verifyResult.error ||
+      !verifyResult.data?.access_token ||
+      verifyResult.data.user.id !== access.identity.userId
+    ) {
       return invalidCodeState();
     }
 
-    const assuranceResult =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-    if (
-      assuranceResult.error ||
-      assuranceResult.data?.currentLevel !== "aal2"
-    ) {
+    verificationSucceeded = true;
+    aal2Confirmed = await hasAuthoritativeAal2Session(
+      supabase,
+      access.identity.userId,
+      verifyResult.data.access_token,
+    );
+  } catch {
+    if (!verificationSucceeded) {
       return mfaUnavailableState();
     }
-  } catch {
-    return mfaUnavailableState();
   }
 
-  redirect("/admin/mfa?status=enrolled");
+  if (!aal2Confirmed) {
+    redirect("/admin/mfa", RedirectType.replace);
+  }
+
+  redirect("/admin/mfa?status=enrolled", RedirectType.replace);
 }
 
 export async function verifyTotpChallengeAction(
   _state: MfaActionState,
   formData: FormData,
 ): Promise<MfaActionState> {
-  await requireEditorialAccess("/admin/mfa/challenge");
+  void _state;
+  const access = await requireEditorialAccess("/admin/mfa/challenge");
 
   const code = readFormValue(formData, "code");
   const factorId = readFormValue(formData, "factor_id");
@@ -183,14 +334,33 @@ export async function verifyTotpChallengeAction(
     return invalidCodeState();
   }
 
+  let aal2Confirmed = false;
+  let verificationSucceeded = false;
+
   try {
     const supabase = await createAuthenticatedServerSupabaseClient();
+    const assurance = await getBoundMfaAssurance(
+      supabase,
+      access.identity.userId,
+    );
     const factorsResult = await supabase.auth.mfa.listFactors();
+    const factorInventory = factorsResult.data
+      ? getTotpFactorInventory(factorsResult.data.all)
+      : null;
 
     if (
+      !assurance ||
+      assurance.currentLevel !== "aal1" ||
+      assurance.nextLevel !== "aal2" ||
       factorsResult.error ||
-      !factorsResult.data ||
-      !findOwnedTotpFactor(factorsResult.data.all, factorId, "verified")
+      !factorInventory ||
+      factorInventory.verified.length === 0 ||
+      factorInventory.unverified.length !== 0 ||
+      !findOwnedTotpFactor(
+        factorInventory.verified,
+        factorId,
+        "verified",
+      )
     ) {
       return {
         message:
@@ -211,21 +381,28 @@ export async function verifyTotpChallengeAction(
       factorId,
     });
 
-    if (verifyResult.error) {
+    if (
+      verifyResult.error ||
+      !verifyResult.data?.access_token ||
+      verifyResult.data.user.id !== access.identity.userId
+    ) {
       return invalidCodeState();
     }
 
-    const assuranceResult =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-    if (
-      assuranceResult.error ||
-      assuranceResult.data?.currentLevel !== "aal2"
-    ) {
+    verificationSucceeded = true;
+    aal2Confirmed = await hasAuthoritativeAal2Session(
+      supabase,
+      access.identity.userId,
+      verifyResult.data.access_token,
+    );
+  } catch {
+    if (!verificationSucceeded) {
       return mfaUnavailableState();
     }
-  } catch {
-    return mfaUnavailableState();
+  }
+
+  if (!aal2Confirmed) {
+    redirect("/admin/mfa", RedirectType.replace);
   }
 
   redirect(next);

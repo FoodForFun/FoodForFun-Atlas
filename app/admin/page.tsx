@@ -13,7 +13,7 @@ type AdminPageProps = {
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const access = await requireEditorialAccess("/admin");
-  const mfa = await getAdminMfaState();
+  const mfa = await getAdminMfaState(access.identity.userId);
   const parameters = await searchParams;
   const status = Array.isArray(parameters.status)
     ? parameters.status[0]

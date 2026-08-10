@@ -13,7 +13,7 @@ export default async function MfaStatusPage({
   searchParams,
 }: MfaStatusPageProps) {
   const access = await requireEditorialAccess("/admin/mfa");
-  const mfa = await getAdminMfaState();
+  const mfa = await getAdminMfaState(access.identity.userId);
   const parameters = await searchParams;
   const status = Array.isArray(parameters.status)
     ? parameters.status[0]
@@ -30,7 +30,7 @@ export default async function MfaStatusPage({
         </p>
       </header>
 
-      {status === "enrolled" ? (
+      {status === "enrolled" && mfa.sessionState === "verified" ? (
         <p className="admin-status-banner" role="status">
           Authenticator enrollment is complete. This session is now AAL2.
         </p>
@@ -98,8 +98,10 @@ export default async function MfaStatusPage({
         ) : null}
         {mfa.sessionState === "stale-session" ? (
           <p>
-            The session and factor state no longer agree. Sign out and sign in
-            again before attempting an AAL2 operation.
+            The session or factor inventory is inconsistent. Sign out and sign
+            in again before attempting an AAL2 operation. If this state
+            persists, do not retry enrollment; ask the project owner to review
+            the account's factors in the Supabase Dashboard.
           </p>
         ) : null}
       </section>

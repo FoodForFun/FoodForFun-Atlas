@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 
 import { getActiveEditorialRole } from "@/app/_lib/auth/membership";
 import { getSafeAdminRedirect } from "@/app/_lib/auth/redirects";
@@ -200,6 +200,6 @@ export async function signOutAction() {
     const supabase = await createAuthenticatedServerSupabaseClient();
     await supabase.auth.signOut({ scope: "local" });
   } finally {
-    redirect("/admin/login?status=signed-out");
+    redirect("/admin/login?status=signed-out", RedirectType.replace);
   }
 }
