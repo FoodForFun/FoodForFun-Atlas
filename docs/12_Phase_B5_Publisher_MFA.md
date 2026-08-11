@@ -51,8 +51,11 @@ alternate Admin entry point.
 4. `auth.mfa.enroll()` creates one unverified TOTP factor. Its QR code and
    manual setup secret are returned only in the authenticated action response
    and rendered on the no-store enrollment page only after the QR source matches
-   Supabase Auth's bounded SVG data-URI format and the secret matches a bounded
-   Base32 format. They are not written to the database by the application,
+   Supabase Auth's exact bounded SVG data-URI format. The application checks the
+   1 MB input ceiling before decoding, accepts the raw or percent-encoded UTF-8
+   form, and validates the expected SVG namespace root and QR rectangle grammar
+   without inserting markup into the DOM. The secret must match a bounded Base32
+   format. They are not written to the database by the application,
    persisted in application storage, placed in a URL, or included in logs,
    analytics, console messages, errors, or cookies.
    The response is private and no-store. The secret necessarily exists in the
