@@ -101,7 +101,7 @@ export default async function MfaStatusPage({
             The session or factor inventory is inconsistent. Sign out and sign
             in again before attempting an AAL2 operation. If this state
             persists, do not retry enrollment; ask the project owner to review
-            the account's factors in the Supabase Dashboard.
+            the account&apos;s factors in the Supabase Dashboard.
           </p>
         ) : null}
       </section>

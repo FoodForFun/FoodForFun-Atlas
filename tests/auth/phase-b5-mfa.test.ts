@@ -89,7 +89,13 @@ test("enrollment material accepts only bounded Supabase TOTP formats", () => {
   assert.equal(isSafeTotpQrCode("https://evil.example/qr.svg"), false);
   assert.equal(isSafeTotpQrCode("data:text/html,<script>"), false);
   assert.equal(
-    isSafeTotpQrCode(`data:image/svg+xml;utf-8,${"A".repeat(100_000)}`),
+    isSafeTotpQrCode(
+      `data:image/svg+xml;utf-8,<svg>${"<rect/>".repeat(40_000)}</svg>`,
+    ),
+    true,
+  );
+  assert.equal(
+    isSafeTotpQrCode(`data:image/svg+xml;utf-8,${"A".repeat(1_000_000)}`),
     false,
   );
 });
