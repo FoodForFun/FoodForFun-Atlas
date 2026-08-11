@@ -59,6 +59,12 @@ export async function getAdminMfaState(expectedUserId: string) {
     factorInventory.unverified.length > 1 ||
     (factorInventory.unverified.length > 0 &&
       factorInventory.verified.length > 0);
+  const hasIncompleteTotpSetup = Boolean(
+    factorInventory &&
+      factorsResult.data.all.length === 1 &&
+      factorInventory.unverified.length === 1 &&
+      factorInventory.verified.length === 0,
+  );
 
   return {
     currentLevel: assuranceResult.data.currentLevel,
@@ -70,6 +76,7 @@ export async function getAdminMfaState(expectedUserId: string) {
           nextLevel: assuranceResult.data.nextLevel,
           verifiedTotpCount: verifiedTotpFactors.length,
         }),
+    hasIncompleteTotpSetup,
     verifiedTotpFactors,
   };
 }

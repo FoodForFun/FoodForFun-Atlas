@@ -4,6 +4,7 @@ import { formatEditorialRole } from "@/app/_lib/auth/membership";
 import { getAdminMfaState } from "@/app/_lib/auth/mfa-server";
 import { requireEditorialAccess } from "@/app/_lib/auth/session";
 import { SignOutForm } from "@/app/admin/_components/sign-out-form";
+import { IncompleteSetupCleanupForm } from "@/app/admin/mfa/_components/incomplete-setup-cleanup-form";
 
 type MfaStatusPageProps = {
   searchParams: Promise<{ status?: string | string[] }>;
@@ -33,6 +34,15 @@ export default async function MfaStatusPage({
       {status === "enrolled" && mfa.sessionState === "verified" ? (
         <p className="admin-status-banner" role="status">
           Authenticator enrollment is complete. This session is now AAL2.
+        </p>
+      ) : null}
+
+      {status === "cleanup-complete" &&
+      mfa.sessionState === "enrollment-required" &&
+      !mfa.hasIncompleteTotpSetup ? (
+        <p className="admin-status-banner" role="status">
+          The incomplete authenticator setup was removed. Start a new setup only
+          when you are ready.
         </p>
       ) : null}
 
@@ -105,6 +115,29 @@ export default async function MfaStatusPage({
           </p>
         ) : null}
       </section>
+
+      {mfa.sessionState === "enrollment-required" &&
+      mfa.hasIncompleteTotpSetup ? (
+        <section
+          className="admin-mfa-recovery"
+          aria-labelledby="mfa-recovery-heading"
+        >
+          <div>
+            <p className="eyebrow">Incomplete setup</p>
+            <h2 id="mfa-recovery-heading">
+              Remove incomplete authenticator setup
+            </h2>
+          </div>
+          <div>
+            <p>
+              An unverified authenticator setup is present. Remove it without
+              starting a replacement, then begin a new setup separately when
+              you are ready.
+            </p>
+            <IncompleteSetupCleanupForm />
+          </div>
+        </section>
+      ) : null}
 
       <footer className="admin-footer">
         <Link href="/admin">Return to the admin shell</Link>
