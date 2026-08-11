@@ -5,7 +5,16 @@ import { getAdminMfaState } from "@/app/_lib/auth/mfa-server";
 import { requireEditorialAccess } from "@/app/_lib/auth/session";
 import { SignOutForm } from "@/app/admin/_components/sign-out-form";
 
-const editorialSections = ["Stories", "Places", "Themes", "Sources"];
+const editorialSections = [
+  {
+    description: "Create, review, preview, and publish Stories",
+    href: "/admin/stories",
+    label: "Stories",
+  },
+  { description: "Planned after Story workflow", href: null, label: "Places" },
+  { description: "Planned after Story workflow", href: null, label: "Themes" },
+  { description: "Planned after Story workflow", href: null, label: "Sources" },
+];
 
 type AdminPageProps = {
   searchParams: Promise<{ status?: string | string[] }>;
@@ -25,8 +34,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <p className="eyebrow">Editorial workspace</p>
         <h1>FoodForFun Atlas Admin</h1>
         <p>
-          This secure shell confirms account and editorial access. Content
-          editing will arrive in a later reviewed phase.
+          This secure workspace confirms account, editorial role, and session
+          assurance before opening protected Story work.
         </p>
       </header>
 
@@ -74,12 +83,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       </section>
 
       <nav className="admin-section-nav" aria-label="Editorial sections">
-        <p className="eyebrow">Future work areas</p>
+        <p className="eyebrow">Editorial areas</p>
         <ul>
           {editorialSections.map((section) => (
-            <li key={section}>
-              <span>{section}</span>
-              <small>Planned for Phase C</small>
+            <li key={section.label}>
+              {section.href ? (
+                <Link href={section.href}>{section.label}</Link>
+              ) : (
+                <span>{section.label}</span>
+              )}
+              <small>{section.description}</small>
             </li>
           ))}
         </ul>

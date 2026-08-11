@@ -56,11 +56,14 @@ The server-rendered homepage presents a bounded selection of published Stories a
 The public application still has no database writes. Phase A database
 authorization and RPC privilege remediation are applied in Production. Phase B
 adds invite-only Supabase email/password authentication and a minimal `/admin`
-shell that requires an active database membership; it does not add content
-editing or user management. Phase B.5 adds member-only TOTP enrollment,
+shell that requires an active database membership. Phase B.5 adds member-only TOTP enrollment,
 challenge, and MFA status routes so Publisher sessions can reach `aal2` before
-sensitive work. Production Auth provisioning, TOTP settings, and owner
-enrollment remain separate owner-approved operational steps.
+sensitive work. Phase C adds the reviewed Story Editor application layer on the
+existing protected Phase A RPCs: member-only list/create/edit/preview,
+optimistic concurrency, role-aware workflow transitions, and confirmed
+Publisher AAL2 publication and recovery actions. It does not add user
+management, direct table writes, image uploads, or the Source/Place/Theme
+editors.
 
 ## Project Documentation
 
@@ -73,6 +76,7 @@ enrollment remain separate owner-approved operational steps.
 - [Phase A Authorization and Data Safety](docs/10_Phase_A_Authorization_Data_Safety.md)
 - [Phase B Authentication and Admin Shell](docs/11_Phase_B_Authentication_Admin_Shell.md)
 - [Phase B.5 Publisher MFA](docs/12_Phase_B5_Publisher_MFA.md)
+- [Phase C Story Editor MVP](docs/13_Phase_C_Story_Editor.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)

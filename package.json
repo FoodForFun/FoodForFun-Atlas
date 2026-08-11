@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test:auth": "node --test tests/auth/*.test.ts"
+    "test:auth": "node --test tests/auth/*.test.ts",
+    "test:editorial": "node --test tests/editorial/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",
