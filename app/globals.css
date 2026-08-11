@@ -1229,7 +1229,8 @@ time {
 }
 
 .admin-field input,
-.admin-field select {
+.admin-field select,
+.admin-field textarea {
   width: 100%;
   min-height: 3.25rem;
   padding: 0.8rem 0.9rem;
@@ -1240,11 +1241,21 @@ time {
   font: inherit;
 }
 
+.admin-field textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+
 .admin-field p {
   margin: 0;
   color: var(--ink-muted);
   font-size: 0.78rem;
   line-height: 1.5;
+}
+
+.admin-field .admin-field-error {
+  color: #8a3e2e;
+  font-weight: 600;
 }
 
 .admin-form button,
@@ -1362,9 +1373,14 @@ time {
   align-content: space-between;
 }
 
-.admin-section-nav span {
+.admin-section-nav span,
+.admin-section-nav li > a {
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(1.5rem, 4vw, 2.25rem);
+}
+
+.admin-section-nav li > a {
+  color: inherit;
 }
 
 .admin-section-nav small {
@@ -1505,6 +1521,259 @@ time {
   font-size: 0.84rem;
 }
 
+.admin-story-page {
+  width: min(100%, 84rem);
+}
+
+.admin-breadcrumb {
+  display: flex;
+  gap: 0.55rem;
+  margin-bottom: 2rem;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.admin-breadcrumb a {
+  color: inherit;
+}
+
+.admin-editorial-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(12rem, 0.6fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: end;
+}
+
+.admin-header-actions {
+  display: grid;
+  justify-items: start;
+}
+
+.admin-header-actions p,
+.admin-session-summary {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-empty-state {
+  padding: clamp(3rem, 8vw, 6rem) 0;
+}
+
+.admin-empty-state h2,
+.admin-section-heading h2,
+.admin-story-metadata h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+}
+
+.admin-empty-state p,
+.admin-section-heading > p:last-child {
+  max-width: 42rem;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.admin-table-shell {
+  overflow-x: auto;
+  padding: 2.5rem 0;
+}
+
+.admin-story-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.admin-story-table th,
+.admin-story-table td {
+  padding: 1rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-story-table thead th {
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-story-table tbody th {
+  min-width: 13rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.admin-status {
+  display: inline-block;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--line);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-status-published {
+  border-color: #52705c;
+  color: #355240;
+}
+
+.admin-status-archived {
+  color: var(--ink-muted);
+}
+
+.admin-editor-section,
+.admin-story-metadata {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.55fr) minmax(0, 1.45fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  padding: clamp(3rem, 7vw, 5rem) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-section-heading p {
+  line-height: 1.65;
+}
+
+.admin-story-metadata dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  padding: 1px;
+  margin: 0;
+  background: var(--line);
+}
+
+.admin-story-metadata dl div {
+  min-width: 0;
+  padding: 1rem;
+  background: var(--paper);
+}
+
+.admin-story-metadata dt {
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-story-metadata dd {
+  margin: 0.5rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-story-form {
+  margin-top: 0;
+}
+
+.admin-story-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.admin-field-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-form-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.admin-form-actions p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.admin-workflow-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-workflow-form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+}
+
+.admin-workflow-form h3,
+.admin-readonly-story h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+}
+
+.admin-workflow-form > p {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.admin-workflow-form button {
+  justify-self: start;
+  min-height: 3rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--paper);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-workflow-form button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.admin-readonly-story pre {
+  margin: 1.5rem 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font: inherit;
+  line-height: 1.7;
+}
+
+.admin-story-preview {
+  padding-top: 2rem;
+}
+
+.admin-preview-banner {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  margin-bottom: 3rem;
+  border: 1px solid var(--accent);
+  align-items: center;
+  justify-content: space-between;
+  background: color-mix(in srgb, var(--accent) 8%, var(--paper));
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.admin-preview-banner div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.admin-preview-banner span {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
 @media (max-width: 44rem) {
   .global-header-inner {
     display: grid;
@@ -1632,8 +1901,65 @@ time {
   .admin-section-nav ul,
   .admin-mfa-summary,
   .admin-mfa-actions,
-  .admin-mfa-recovery {
+  .admin-mfa-recovery,
+  .admin-editorial-header,
+  .admin-editor-section,
+  .admin-story-metadata {
     grid-template-columns: 1fr;
+  }
+
+  .admin-story-form-grid,
+  .admin-story-metadata dl {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-story-table,
+  .admin-story-table tbody,
+  .admin-story-table tr,
+  .admin-story-table th,
+  .admin-story-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-story-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+
+  .admin-story-table tr {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .admin-story-table th,
+  .admin-story-table td {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 0.45fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.45rem 0;
+    border: 0;
+  }
+
+  .admin-story-table th::before,
+  .admin-story-table td::before {
+    content: attr(data-label);
+    color: var(--ink-muted);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .admin-preview-banner,
+  .admin-form-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .admin-footer {
