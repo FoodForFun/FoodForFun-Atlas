@@ -21,6 +21,10 @@ export type MfaSessionState =
 const factorIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const totpQrCodePrefix = "data:image/svg+xml;utf-8,";
+// Supabase Auth renders every QR module as an SVG rect, so valid enrollment
+// payloads are commonly well above 100 KB. Keep a finite upper bound while
+// allowing the SDK's trusted, in-memory data URI format.
+const maxTotpQrCodeLength = 1_000_000;
 
 export function isTotpCode(value: string) {
   return /^\d{6}$/.test(value);
@@ -35,7 +39,9 @@ export function isSafeTotpEnrollmentSecret(value: string) {
 }
 
 export function isSafeTotpQrCode(value: string) {
-  return value.length <= 100_000 && value.startsWith(totpQrCodePrefix);
+  return (
+    value.length <= maxTotpQrCodeLength && value.startsWith(totpQrCodePrefix)
+  );
 }
 
 export function getTotpFactorInventory(
