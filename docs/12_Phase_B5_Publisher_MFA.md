@@ -26,7 +26,7 @@ dependency.
 
 | Route | Purpose | Protection |
 | --- | --- | --- |
-| `/admin/mfa` | Show current AAL and verified TOTP factor count | Active editorial membership |
+| `/admin/mfa` | Show current AAL and factor status; remove one incomplete unverified setup after explicit confirmation | Active editorial membership |
 | `/admin/mfa/enroll` | Start and verify one TOTP enrollment | Active editorial membership and no verified TOTP factor |
 | `/admin/mfa/challenge` | Challenge a verified TOTP factor and reach AAL2 | Active editorial membership and an owned verified TOTP factor |
 
@@ -101,6 +101,25 @@ unenroll for a verified factor, and re-lists the current user's factors before
 creating a replacement. These bounds prevent the normal application flow from
 accumulating abandoned factors while preserving verified factors.
 
+### Cleanup-only recovery
+
+The MFA status page offers **Remove incomplete authenticator setup** only when
+the signed-in active editorial member has exactly one TOTP factor, that factor
+is unverified, no verified factor exists, and the session is in the exact
+`aal1` to `aal1` enrollment state. The user must explicitly confirm the action.
+The browser submits no user ID or factor ID.
+
+The dedicated Server Action repeats the authenticated identity and active
+membership checks, binds verified session claims to that member, and reads the
+factor from the member's own `mfa.listFactors()` result. It repeats the factor
+list immediately before mutation and requires the same sole unverified TOTP
+factor, then calls `mfa.unenroll({ factorId })` exactly once. It reports success
+only after a final factor list is empty. Missing, verified, multiple,
+unsupported, malformed, changed, or error states fail closed without retry.
+This cleanup action never enrolls a replacement factor, creates a challenge,
+verifies a code, uses Auth Admin APIs, or uses a service-role credential. A new
+enrollment remains a separate, deliberate action.
+
 ## Later-session challenge flow
 
 After password sign-in, the server checks active membership and calls
@@ -162,8 +181,8 @@ No additional CSRF exception is required for this deployment topology.
 
 Logout uses Supabase local-scope sign-out, clears the browser's authenticated
 session cookies, and returns to `/admin/login`. Losing the authenticator does
-not grant a bypass. Factor recovery or removal is an owner-controlled Supabase
-Dashboard operation until a separately reviewed recovery design exists.
+not grant a bypass. The application cleanup control is limited to one
+unverified, incomplete setup and cannot remove a verified authenticator.
 Supabase does not currently provide recovery codes through the TOTP MFA API.
 
 If enrollment cannot be completed, the owner may restart only when exactly one
@@ -171,11 +190,12 @@ owned unverified TOTP factor exists; ambiguous inventories require Dashboard or
 Auth-admin inspection. If an enrolled factor is lost or no valid code can be
 produced, the AAL1 Admin Shell remains available but Publisher-sensitive AAL2
 operations remain denied. An authorized project owner must verify the account
-identity out of band and remove or recover the factor through Supabase's trusted
-administrative surface. PR #50 intentionally contains no user-facing disable or
-unenroll control. A future self-service removal design must separately require
-recent AAL2, active membership, explicit confirmation, audit/recovery review,
-and protection against removing the last usable factor.
+identity out of band and remove or recover the verified factor through
+Supabase's trusted administrative surface. Removing a verified authenticator
+through the application remains out of scope. A future verified-factor removal
+design must separately require recent AAL2, active membership, explicit
+confirmation, audit/recovery review, and protection against removing the last
+usable factor.
 
 ## Owner provisioning sequence
 

@@ -3,6 +3,7 @@
 import { redirect, RedirectType } from "next/navigation";
 
 import {
+  cleanupIncompleteTotpFactor,
   findOwnedTotpFactor,
   getTotpFactorInventory,
   isSafeTotpEnrollmentSecret,
@@ -17,6 +18,8 @@ import {
   type MfaActionState,
   type MfaEnrollmentActionState,
 } from "@/app/admin/mfa/action-state";
+
+const cleanupConfirmationValue = "remove-incomplete-setup";
 
 function readFormValue(formData: FormData, name: string) {
   const value = formData.get(name);
@@ -100,6 +103,52 @@ async function hasAuthoritativeAal2Session(
       result.data?.claims.sub === expectedUserId &&
       result.data.claims.aal === "aal2",
   );
+}
+
+export async function cleanupIncompleteTotpSetupAction(
+  _state: MfaActionState,
+  formData: FormData,
+): Promise<MfaActionState> {
+  void _state;
+  const access = await requireEditorialAccess("/admin/mfa");
+
+  if (
+    readFormValue(formData, "confirm_cleanup") !== cleanupConfirmationValue
+  ) {
+    return {
+      message: "Confirm the cleanup before removing the incomplete setup.",
+      status: "error",
+    };
+  }
+
+  try {
+    const supabase = await createAuthenticatedServerSupabaseClient();
+    const assurance = await getBoundMfaAssurance(
+      supabase,
+      access.identity.userId,
+    );
+
+    if (
+      !assurance ||
+      assurance.currentLevel !== "aal1" ||
+      assurance.nextLevel !== "aal1"
+    ) {
+      return mfaUnavailableState();
+    }
+
+    const cleaned = await cleanupIncompleteTotpFactor({
+      listFactors: () => supabase.auth.mfa.listFactors(),
+      unenroll: (parameters) => supabase.auth.mfa.unenroll(parameters),
+    });
+
+    if (!cleaned) {
+      return mfaUnavailableState();
+    }
+  } catch {
+    return mfaUnavailableState();
+  }
+
+  redirect("/admin/mfa?status=cleanup-complete", RedirectType.replace);
 }
 
 export async function startTotpEnrollmentAction(

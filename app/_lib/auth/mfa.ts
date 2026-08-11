@@ -12,6 +12,21 @@ export type TotpFactorInventory = {
   verified: MfaFactorSummary[];
 };
 
+type MfaFactorListResult = {
+  data: { all: MfaFactorSummary[] } | null;
+  error: unknown;
+};
+
+type MfaUnenrollResult = {
+  data: { id: string } | null;
+  error: unknown;
+};
+
+export type IncompleteTotpCleanupClient = {
+  listFactors: () => Promise<MfaFactorListResult>;
+  unenroll: (parameters: { factorId: string }) => Promise<MfaUnenrollResult>;
+};
+
 export type MfaSessionState =
   | "challenge-required"
   | "enrollment-required"
@@ -290,6 +305,76 @@ export function getTotpFactorInventory(
   }
 
   return inventory;
+}
+
+function getSoleUnverifiedTotpFactor(result: MfaFactorListResult) {
+  if (result.error || !result.data || result.data.all.length !== 1) {
+    return null;
+  }
+
+  const inventory = getTotpFactorInventory(result.data.all);
+
+  if (
+    !inventory ||
+    inventory.verified.length !== 0 ||
+    inventory.unverified.length !== 1
+  ) {
+    return null;
+  }
+
+  return inventory.unverified[0];
+}
+
+export async function cleanupIncompleteTotpFactor(
+  client: IncompleteTotpCleanupClient,
+) {
+  try {
+    const initialFactor = getSoleUnverifiedTotpFactor(
+      await client.listFactors(),
+    );
+
+    if (!initialFactor) {
+      return false;
+    }
+
+    // Re-read immediately before mutation so a changed or ambiguous factor
+    // inventory fails closed without trusting client-supplied state.
+    const confirmedFactor = getSoleUnverifiedTotpFactor(
+      await client.listFactors(),
+    );
+
+    if (!confirmedFactor || confirmedFactor.id !== initialFactor.id) {
+      return false;
+    }
+
+    const unenrollResult = await client.unenroll({
+      factorId: confirmedFactor.id,
+    });
+
+    if (
+      unenrollResult.error ||
+      !unenrollResult.data ||
+      unenrollResult.data.id !== confirmedFactor.id
+    ) {
+      return false;
+    }
+
+    const finalResult = await client.listFactors();
+    const finalInventory = finalResult.data
+      ? getTotpFactorInventory(finalResult.data.all)
+      : null;
+
+    return Boolean(
+      !finalResult.error &&
+        finalResult.data &&
+        finalResult.data.all.length === 0 &&
+        finalInventory &&
+        finalInventory.verified.length === 0 &&
+        finalInventory.unverified.length === 0,
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function findOwnedTotpFactor(

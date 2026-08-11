@@ -1375,7 +1375,8 @@ time {
 }
 
 .admin-mfa-summary,
-.admin-mfa-actions {
+.admin-mfa-actions,
+.admin-mfa-recovery {
   display: grid;
   grid-template-columns: minmax(12rem, 0.65fr) minmax(18rem, 1.35fr);
   gap: clamp(2rem, 6vw, 5rem);
@@ -1384,15 +1385,34 @@ time {
 }
 
 .admin-mfa-summary h2,
-.admin-mfa-actions h2 {
+.admin-mfa-actions h2,
+.admin-mfa-recovery h2 {
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(2rem, 5vw, 3.4rem);
 }
 
 .admin-mfa-summary p,
-.admin-mfa-actions > p {
+.admin-mfa-actions > p,
+.admin-mfa-recovery p {
   color: var(--ink-muted);
   line-height: 1.65;
+}
+
+.admin-confirmation {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.admin-confirmation input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--accent);
 }
 
 .admin-primary-link {
@@ -1611,7 +1631,8 @@ time {
   .admin-session,
   .admin-section-nav ul,
   .admin-mfa-summary,
-  .admin-mfa-actions {
+  .admin-mfa-actions,
+  .admin-mfa-recovery {
     grid-template-columns: 1fr;
   }
 
