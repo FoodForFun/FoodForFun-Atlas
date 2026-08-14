@@ -3,6 +3,7 @@ import Link from "next/link";
 const navigationItems = [
   { href: "/stories", label: "Stories" },
   { href: "/places", label: "Places" },
+  { href: "/map", label: "Map" },
   { href: "/themes", label: "Themes" },
   { href: "/search", label: "Search" },
   { href: "/about", label: "About" },

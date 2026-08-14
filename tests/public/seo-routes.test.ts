@@ -11,7 +11,7 @@ import {
   publicSitemapStoryLimit,
 } from "../../app/_lib/seo.ts";
 
-test("Sitemap keeps the five public entries when data is unavailable", () => {
+test("Sitemap keeps the six public entries when data is unavailable", () => {
   const entries = buildPublicSitemap(new URL("https://atlas.example/base?q=1#x"), {
     places: null,
     stories: null,
@@ -23,6 +23,7 @@ test("Sitemap keeps the five public entries when data is unavailable", () => {
     [
       "https://atlas.example/",
       "https://atlas.example/stories",
+      "https://atlas.example/map",
       "https://atlas.example/places",
       "https://atlas.example/themes",
       "https://atlas.example/about",
@@ -38,7 +39,7 @@ test("Sitemap adds sorted, encoded, deduplicated public detail paths", () => {
   });
 
   assert.deepEqual(
-    entries.slice(5).map(({ url }) => url),
+    entries.slice(6).map(({ url }) => url),
     [
       "https://atlas.example/stories/a%20story",
       "https://atlas.example/stories/z-story",
@@ -161,6 +162,7 @@ test("Every public page declares shared metadata and the root validates its base
     "app/stories/page.tsx",
     "app/stories/[slug]/page.tsx",
     "app/search/page.tsx",
+    "app/map/page.tsx",
   ];
 
   assert.match(layout, /metadataBase: getSiteUrl\(\)/);
