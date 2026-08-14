@@ -6,6 +6,13 @@ import {
   createServerSupabaseClient,
   SupabaseConfigurationError,
 } from "./supabase/server";
+import {
+  rankRelatedStories,
+  relatedStoryCandidateLimit,
+  relatedStoryDisplayLimit,
+  type RelatedPublicStory,
+  type RelatedStoryMatch,
+} from "./related-stories";
 
 export type PublicStoryListItem = {
   id: string;
@@ -65,6 +72,11 @@ type PublicStoryRow = PublicStoryListItem & {
 type StoryQueryResult<T> =
   | { data: T; error: false }
   | { data: null; error: true };
+
+type PublicRelationshipRow = {
+  related_id: string;
+  story_id: string;
+};
 
 function logStoryReadFailure(operation: string, error: unknown) {
   if (error instanceof SupabaseConfigurationError) {
@@ -224,3 +236,98 @@ async function getPublicStoryBySlugUncached(
 }
 
 export const getPublicStoryBySlug = cache(getPublicStoryBySlugUncached);
+
+export async function getRelatedPublicStories(
+  story: PublicStory,
+  limit = relatedStoryDisplayLimit,
+): Promise<StoryQueryResult<RelatedPublicStory[]>> {
+  if (story.places.length === 0 && story.themes.length === 0) {
+    return { data: [], error: false };
+  }
+
+  try {
+    const supabase = createServerSupabaseClient();
+    const [placeResult, themeResult] = await Promise.all([
+      story.places.length === 0
+        ? Promise.resolve({ data: [], error: null })
+        : supabase
+            .from("story_places")
+            .select("story_id, related_id:place_id")
+            .in(
+              "place_id",
+              story.places.map(({ id }) => id),
+            )
+            .neq("story_id", story.id)
+            .order("created_at", { ascending: false })
+            .order("story_id", { ascending: true })
+            .limit(relatedStoryCandidateLimit),
+      story.themes.length === 0
+        ? Promise.resolve({ data: [], error: null })
+        : supabase
+            .from("story_themes")
+            .select("story_id, related_id:theme_id")
+            .in(
+              "theme_id",
+              story.themes.map(({ id }) => id),
+            )
+            .neq("story_id", story.id)
+            .order("created_at", { ascending: false })
+            .order("story_id", { ascending: true })
+            .limit(relatedStoryCandidateLimit),
+    ]);
+
+    if (placeResult.error || themeResult.error) {
+      logStoryReadFailure(
+        "Related Story relationship query",
+        placeResult.error || themeResult.error,
+      );
+      return { data: null, error: true };
+    }
+
+    const placeRows = (placeResult.data ?? []) as PublicRelationshipRow[];
+    const themeRows = (themeResult.data ?? []) as PublicRelationshipRow[];
+    const candidateIds = Array.from(
+      new Set(
+        [...placeRows, ...themeRows].map(({ story_id }) => story_id),
+      ),
+    );
+
+    if (candidateIds.length === 0) {
+      return { data: [], error: false };
+    }
+
+    const { data, error } = await supabase
+      .from("stories")
+      .select("id, title, slug, summary, cover_image_url, published_at")
+      .in("id", candidateIds)
+      .order("published_at", { ascending: false })
+      .limit(relatedStoryCandidateLimit * 2);
+
+    if (error) {
+      logStoryReadFailure("Related Story candidate query", error);
+      return { data: null, error: true };
+    }
+
+    const toMatches = (rows: PublicRelationshipRow[]): RelatedStoryMatch[] =>
+      rows.map(({ related_id, story_id }) => ({
+        relatedId: related_id,
+        storyId: story_id,
+      }));
+
+    return {
+      data: rankRelatedStories({
+        currentStoryId: story.id,
+        limit,
+        placeMatches: toMatches(placeRows),
+        places: story.places,
+        stories: (data ?? []) as PublicStoryListItem[],
+        themeMatches: toMatches(themeRows),
+        themes: story.themes,
+      }),
+      error: false,
+    };
+  } catch (error) {
+    logStoryReadFailure("Related Story query", error);
+    return { data: null, error: true };
+  }
+}

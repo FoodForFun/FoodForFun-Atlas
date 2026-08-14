@@ -512,6 +512,13 @@ time {
   line-height: 1.65;
 }
 
+.story-card .story-card-context {
+  margin: 0 0 0.75rem;
+  color: var(--accent);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
 .story-link {
   display: inline-block;
   margin-top: 1.4rem;
@@ -989,6 +996,12 @@ time {
 .story-sources {
   margin-top: clamp(4rem, 9vw, 7rem);
   padding-top: clamp(2rem, 5vw, 3.5rem);
+  border-top: 1px solid var(--line);
+}
+
+.related-stories {
+  padding-top: clamp(4rem, 9vw, 7rem);
+  margin-top: clamp(4rem, 9vw, 7rem);
   border-top: 1px solid var(--line);
 }
 

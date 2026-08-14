@@ -80,6 +80,8 @@ a safe correction path. Phase I adds a bounded public sitemap, explicit crawler
 boundaries, and `noindex` handling for arbitrary Search results.
 Phase J adds canonical URLs and factual Open Graph/Twitter metadata across the
 public Atlas, with real Story publication data and safe optional cover images.
+Phase K adds bounded, explainable Related Stories selected through shared public
+Place and Theme relationships.
 
 ## Project Documentation
 
@@ -100,6 +102,7 @@ public Atlas, with real Story publication data and safe optional cover images.
 - [Phase H Public About](docs/18_Phase_H_Public_About.md)
 - [Phase I Basic SEO](docs/19_Phase_I_Basic_SEO.md)
 - [Phase J Canonical and Social Metadata](docs/20_Phase_J_Social_Metadata.md)
+- [Phase K Related Stories](docs/21_Phase_K_Related_Stories.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
