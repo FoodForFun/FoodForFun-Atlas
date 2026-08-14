@@ -72,7 +72,9 @@ Publisher AAL2 confirmation for published changes. Phase F adds a protected
 Theme list/create/edit workspace,
 role-aware read-only access, duplicate warnings, optimistic concurrency, and
 Publisher AAL2 confirmation before inactive Themes return to public discovery.
-The Place Editor remains future work.
+Phase G adds a protected Place list/create/edit workspace with hierarchy checks,
+duplicate warnings, optimistic concurrency, and explicit public location
+precision controls.
 
 ## Project Documentation
 
@@ -89,6 +91,7 @@ The Place Editor remains future work.
 - [Phase D Source Editor MVP](docs/14_Phase_D_Source_Editor.md)
 - [Phase E Story Relationships MVP](docs/15_Phase_E_Story_Relationships.md)
 - [Phase F Theme Editor MVP](docs/16_Phase_F_Theme_Editor.md)
+- [Phase G Place Editor MVP](docs/17_Phase_G_Place_Editor.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
