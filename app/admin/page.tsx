@@ -11,7 +11,11 @@ const editorialSections = [
     href: "/admin/stories",
     label: "Stories",
   },
-  { description: "Planned after Story workflow", href: null, label: "Places" },
+  {
+    description: "Maintain geographic identity, hierarchy, and privacy precision",
+    href: "/admin/places",
+    label: "Places",
+  },
   {
     description: "Maintain reusable editorial vocabulary and discovery state",
     href: "/admin/themes",

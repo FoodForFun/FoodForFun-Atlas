@@ -1,6 +1,6 @@
 # FoodForFun Atlas — Phase F Theme Editor MVP
 
-**Status:** Implemented for Pull Request review; not merged
+**Status:** Implemented and merged
 
 **Last Updated:** August 2026
 
