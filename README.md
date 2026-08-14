@@ -68,8 +68,11 @@ public-safe metadata and private transcript/rights forms, duplicate warnings,
 independent lock versions, and Publisher AAL2 confirmation for Sources connected
 to published or scheduled Stories. Phase E adds protected Story connections to
 existing Sources, Places, and Themes with per-relationship concurrency and
-Publisher AAL2 confirmation for published changes. Place and Theme editors
-remain future work.
+Publisher AAL2 confirmation for published changes. Phase F adds a protected
+Theme list/create/edit workspace,
+role-aware read-only access, duplicate warnings, optimistic concurrency, and
+Publisher AAL2 confirmation before inactive Themes return to public discovery.
+The Place Editor remains future work.
 
 ## Project Documentation
 
@@ -85,6 +88,7 @@ remain future work.
 - [Phase C Story Editor MVP](docs/13_Phase_C_Story_Editor.md)
 - [Phase D Source Editor MVP](docs/14_Phase_D_Source_Editor.md)
 - [Phase E Story Relationships MVP](docs/15_Phase_E_Story_Relationships.md)
+- [Phase F Theme Editor MVP](docs/16_Phase_F_Theme_Editor.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
