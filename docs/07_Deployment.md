@@ -80,6 +80,7 @@ Production represents the `main` branch and the current public version of FoodFo
 Production changes should normally occur only after:
 
 - the Pull Request is reviewed;
+- the Application and Database GitHub Actions jobs pass;
 - local validation passes;
 - the Preview Deployment is verified; and
 - the Pull Request is merged into `main`.
@@ -103,12 +104,13 @@ Before opening a Pull Request, inspect the diff and repository status for secret
 
 1. Create or update a focused branch.
 2. Push the branch to GitHub.
-3. Wait for the Vercel Preview Deployment.
-4. Review the deployment status and logs.
-5. Open and test the Preview URL.
-6. Record validation results in the Pull Request.
-7. Merge only after review.
-8. Verify the Production Deployment after merging.
+3. Wait for the Application and Database GitHub Actions jobs.
+4. Wait for the Vercel Preview Deployment.
+5. Review the validation and deployment logs.
+6. Open and test the Preview URL.
+7. Record validation results in the Pull Request.
+8. Merge only after review.
+9. Verify the Production Deployment after merging.
 
 Deployment checks should be recorded alongside the local validation commands and any relevant manual checks.
 

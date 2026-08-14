@@ -47,6 +47,33 @@ NEXT_PUBLIC_SITE_URL
 
 Never commit `.env.local` or use a service-role or administrative credential for public Story access.
 
+## Validation
+
+Install exactly the dependency versions recorded in `package-lock.json`, then
+run the application checks:
+
+```bash
+npm ci
+npm audit --audit-level=high
+npm run lint
+npm test
+npm run build
+```
+
+Database changes also require an isolated local Postgres start and the pgTAP
+suite:
+
+```bash
+npx --no-install supabase db start
+npx --no-install supabase test db
+npx --no-install supabase stop --no-backup
+```
+
+GitHub Actions runs these application and database checks independently for
+every Pull Request and every push to `main`. The workflow uses safe build-only
+placeholders and local Docker services; it has read-only repository permission
+and no Production credentials or remote Supabase access.
+
 ## Public Atlas
 
 The server-rendered homepage presents a bounded selection of published Stories and entry points derived from their Place and Theme relationships. Global navigation connects the homepage with the paginated `/stories` archive, the published-content directories at `/places` and `/themes`, and the linkable public search at `/search?q=...`.
@@ -82,6 +109,10 @@ Phase J adds canonical URLs and factual Open Graph/Twitter metadata across the
 public Atlas, with real Story publication data and safe optional cover images.
 Phase K adds bounded, explainable Related Stories selected through shared public
 Place and Theme relationships.
+Phase L adds the provider-free public Map, server-side location generalization,
+overlap grouping, and a database-enforced boundary that prevents anonymous raw
+coordinate reads. Phase M adds reproducible application and isolated database
+validation in GitHub Actions.
 
 ## Project Documentation
 
