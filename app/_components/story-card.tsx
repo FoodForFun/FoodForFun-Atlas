@@ -8,10 +8,11 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
 });
 
 type StoryCardProps = {
+  context?: string;
   story: PublicStoryListItem;
 };
 
-export function StoryCard({ story }: StoryCardProps) {
+export function StoryCard({ context, story }: StoryCardProps) {
   return (
     <article className="story-card">
       {story.cover_image_url ? (
@@ -26,6 +27,7 @@ export function StoryCard({ story }: StoryCardProps) {
         />
       ) : null}
       <div className="story-card-content">
+        {context ? <p className="eyebrow story-card-context">{context}</p> : null}
         <time dateTime={story.published_at}>
           {dateFormatter.format(new Date(story.published_at))}
         </time>

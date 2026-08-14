@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { StoryCard } from "@/app/_components/story-card";
 import {
   createPublicPageMetadata,
   createStoryMetadata,
 } from "@/app/_lib/seo";
 import {
+  getRelatedPublicStories,
   getPublicStoryBySlug,
   type PublicSourceMetadata,
 } from "@/app/_lib/stories";
@@ -106,6 +108,7 @@ export default async function StoryPage({ params }: StoryPageProps) {
   }
 
   const story = storyResult.data;
+  const relatedStoriesResult = await getRelatedPublicStories(story);
   const paragraphs = story.body
     .split(/\r?\n\s*\r?\n/)
     .map((paragraph) => paragraph.trim())
@@ -282,6 +285,29 @@ export default async function StoryPage({ params }: StoryPageProps) {
           </section>
         ) : null}
       </article>
+
+      {!relatedStoriesResult.error && relatedStoriesResult.data.length > 0 ? (
+        <section
+          className="related-stories"
+          aria-labelledby="related-stories-heading"
+        >
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Continue exploring</p>
+              <h2 id="related-stories-heading">Related Stories</h2>
+            </div>
+          </div>
+          <div className="story-list">
+            {relatedStoriesResult.data.map((relatedStory) => (
+              <StoryCard
+                context={relatedStory.connectionLabel}
+                key={relatedStory.id}
+                story={relatedStory}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <footer className="story-footer">
         <Link href="/stories">
