@@ -76,7 +76,8 @@ Phase G adds a protected Place list/create/edit workspace with hierarchy checks,
 duplicate warnings, optimistic concurrency, and explicit public location
 precision controls. Phase H adds the public About page with editorial methods,
 source transparency, privacy boundaries, human review of AI-assisted work, and
-a safe correction path.
+a safe correction path. Phase I adds a bounded public sitemap, explicit crawler
+boundaries, and `noindex` handling for arbitrary Search results.
 
 ## Project Documentation
 
@@ -95,6 +96,7 @@ a safe correction path.
 - [Phase F Theme Editor MVP](docs/16_Phase_F_Theme_Editor.md)
 - [Phase G Place Editor MVP](docs/17_Phase_G_Place_Editor.md)
 - [Phase H Public About](docs/18_Phase_H_Public_About.md)
+- [Phase I Basic SEO](docs/19_Phase_I_Basic_SEO.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
