@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { StoryCard } from "@/app/_components/story-card";
@@ -10,6 +11,17 @@ import {
   getPublicThemeDirectory,
   type PublicThemeDirectoryItem,
 } from "@/app/_lib/themes";
+import {
+  atlasDescription,
+  atlasName,
+  createPublicPageMetadata,
+} from "@/app/_lib/seo";
+
+export const metadata: Metadata = createPublicPageMetadata({
+  description: atlasDescription,
+  path: "/",
+  title: atlasName,
+});
 
 export const dynamic = "force-dynamic";
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { createPublicPageMetadata } from "@/app/_lib/seo";
 import {
   getPublicPlaceBySlug,
   type PublicPlaceStory,
@@ -33,13 +34,18 @@ export async function generateMetadata({
   const placeResult = await getPublicPlaceBySlug(slug);
 
   if (placeResult.error || !placeResult.data) {
-    return { title: "Place | FoodForFun Atlas" };
+    return createPublicPageMetadata({
+      description: "Explore places connected to published FoodForFun Atlas stories.",
+      path: "/places",
+      title: "Place | FoodForFun Atlas",
+    });
   }
 
-  return {
+  return createPublicPageMetadata({
+    path: `/places/${encodeURIComponent(placeResult.data.slug)}`,
     title: `${placeResult.data.name} | FoodForFun Atlas`,
     description: `Explore published FoodForFun Atlas stories connected to ${placeResult.data.name}.`,
-  };
+  });
 }
 
 export default async function PlacePage({ params }: PlacePageProps) {

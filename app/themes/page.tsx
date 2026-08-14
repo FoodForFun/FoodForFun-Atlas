@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { createPublicPageMetadata } from "@/app/_lib/seo";
 import { getPublicThemeDirectory } from "@/app/_lib/themes";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
+  path: "/themes",
   title: "Themes | FoodForFun Atlas",
   description:
     "Explore recurring ideas across published FoodForFun Atlas stories.",
-};
+});
 
 export default async function ThemesPage() {
   const themesResult = await getPublicThemeDirectory();

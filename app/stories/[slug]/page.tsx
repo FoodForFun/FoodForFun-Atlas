@@ -3,6 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
+  createPublicPageMetadata,
+  createStoryMetadata,
+} from "@/app/_lib/seo";
+import {
   getPublicStoryBySlug,
   type PublicSourceMetadata,
 } from "@/app/_lib/stories";
@@ -77,16 +81,20 @@ export async function generateMetadata({
   const storyResult = await getPublicStoryBySlug(slug);
 
   if (storyResult.error || !storyResult.data) {
-    return {
+    return createPublicPageMetadata({
+      path: "/stories",
       title: "Story | FoodForFun Atlas",
       description: "Read published documentary stories from FoodForFun Atlas.",
-    };
+    });
   }
 
-  return {
-    title: `${storyResult.data.title} | FoodForFun Atlas`,
-    description: storyResult.data.summary,
-  };
+  return createStoryMetadata({
+    coverImageUrl: storyResult.data.cover_image_url,
+    publishedAt: storyResult.data.published_at,
+    slug: storyResult.data.slug,
+    summary: storyResult.data.summary,
+    title: storyResult.data.title,
+  });
 }
 
 export default async function StoryPage({ params }: StoryPageProps) {

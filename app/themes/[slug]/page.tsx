@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { createPublicPageMetadata } from "@/app/_lib/seo";
 import {
   getPublicThemeBySlug,
   type PublicThemeStory,
@@ -25,15 +26,20 @@ export async function generateMetadata({
   const themeResult = await getPublicThemeBySlug(slug);
 
   if (themeResult.error || !themeResult.data) {
-    return { title: "Theme | FoodForFun Atlas" };
+    return createPublicPageMetadata({
+      description: "Explore recurring ideas across published FoodForFun Atlas stories.",
+      path: "/themes",
+      title: "Theme | FoodForFun Atlas",
+    });
   }
 
-  return {
+  return createPublicPageMetadata({
+    path: `/themes/${encodeURIComponent(themeResult.data.slug)}`,
     title: `${themeResult.data.name} | FoodForFun Atlas`,
     description:
       themeResult.data.description ||
       `Explore published FoodForFun Atlas stories connected through ${themeResult.data.name}.`,
-  };
+  });
 }
 
 export default async function ThemePage({ params }: ThemePageProps) {

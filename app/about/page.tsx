@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+import { createPublicPageMetadata } from "@/app/_lib/seo";
+
+export const metadata: Metadata = createPublicPageMetadata({
+  path: "/about",
   title: "About | FoodForFun Atlas",
   description:
     "Learn how FoodForFun Atlas documents people, work, places, and communities through food.",
-};
+});
 
 const correctionUrl =
   "https://github.com/FoodForFun/FoodForFun-Atlas/issues/new?title=Correction%3A%20";
