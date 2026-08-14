@@ -134,6 +134,8 @@ validation in GitHub Actions.
 - [Phase I Basic SEO](docs/19_Phase_I_Basic_SEO.md)
 - [Phase J Canonical and Social Metadata](docs/20_Phase_J_Social_Metadata.md)
 - [Phase K Related Stories](docs/21_Phase_K_Related_Stories.md)
+- [Phase L Privacy-Preserving Public Map](docs/22_Phase_L_Public_Map.md)
+- [Phase M Continuous Integration](docs/23_Phase_M_Continuous_Integration.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
