@@ -74,7 +74,9 @@ role-aware read-only access, duplicate warnings, optimistic concurrency, and
 Publisher AAL2 confirmation before inactive Themes return to public discovery.
 Phase G adds a protected Place list/create/edit workspace with hierarchy checks,
 duplicate warnings, optimistic concurrency, and explicit public location
-precision controls.
+precision controls. Phase H adds the public About page with editorial methods,
+source transparency, privacy boundaries, human review of AI-assisted work, and
+a safe correction path.
 
 ## Project Documentation
 
@@ -92,6 +94,7 @@ precision controls.
 - [Phase E Story Relationships MVP](docs/15_Phase_E_Story_Relationships.md)
 - [Phase F Theme Editor MVP](docs/16_Phase_F_Theme_Editor.md)
 - [Phase G Place Editor MVP](docs/17_Phase_G_Place_Editor.md)
+- [Phase H Public About](docs/18_Phase_H_Public_About.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
