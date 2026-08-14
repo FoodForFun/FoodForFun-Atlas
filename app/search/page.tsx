@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: "Search | FoodForFun Atlas",
   description:
     "Search published FoodForFun Atlas Stories, public Places, and active Themes.",
+  robots: { follow: true, index: false },
 };
 
 const minimumQueryLength = 2;
