@@ -105,7 +105,9 @@ select extensions.is(
 );
 select extensions.is(
   (
-    select pg_catalog.array_agg(distinct pg_catalog.pg_get_userbyid(procedure.proowner))
+    select pg_catalog.array_agg(
+      distinct pg_catalog.pg_get_userbyid(procedure.proowner)::text
+    )
     from phase_a_function_privilege_expectations as expected
     join pg_catalog.pg_proc as procedure
       on procedure.oid = expected.function_signature::regprocedure
@@ -594,7 +596,9 @@ select extensions.throws_ok(
 );
 select extensions.is(
   (
-    select pg_catalog.array_agg(cp.column_name order by cp.column_name)
+    select pg_catalog.array_agg(
+      cp.column_name::text order by cp.column_name::text
+    )
     from information_schema.column_privileges as cp
     where cp.grantee = 'anon'
       and cp.table_schema = 'public'
@@ -609,7 +613,9 @@ select extensions.is(
 );
 select extensions.is(
   (
-    select pg_catalog.array_agg(cp.column_name order by cp.column_name)
+    select pg_catalog.array_agg(
+      cp.column_name::text order by cp.column_name::text
+    )
     from information_schema.column_privileges as cp
     where cp.grantee = 'anon'
       and cp.table_schema = 'public'
@@ -623,7 +629,9 @@ select extensions.is(
 );
 select extensions.is(
   (
-    select pg_catalog.array_agg(cp.column_name order by cp.column_name)
+    select pg_catalog.array_agg(
+      cp.column_name::text order by cp.column_name::text
+    )
     from information_schema.column_privileges as cp
     where cp.grantee = 'anon'
       and cp.table_schema = 'public'
@@ -836,12 +844,8 @@ select set_config(
 set local role authenticated;
 
 select extensions.is(
-  (
-    select role
-    from public.editorial_memberships
-    where user_id = (select auth.uid())
-  ),
-  null::text,
+  private.has_editorial_role('contributor'),
+  false,
   'an inactive membership grants no editorial role'
 );
 select extensions.is(
