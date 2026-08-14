@@ -136,6 +136,8 @@ export default async function Home() {
           that exist around food. It is not a restaurant ranking or review
           platform. Each record begins with a specific Story and the people
           behind it.
+          {" "}
+          <Link href="/about">Read how the Atlas works.</Link>
         </p>
       </aside>
     </main>

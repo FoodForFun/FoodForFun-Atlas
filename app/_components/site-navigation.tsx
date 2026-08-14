@@ -5,6 +5,7 @@ const navigationItems = [
   { href: "/places", label: "Places" },
   { href: "/themes", label: "Themes" },
   { href: "/search", label: "Search" },
+  { href: "/about", label: "About" },
 ];
 
 export function SiteNavigation() {

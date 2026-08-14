@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test:auth": "node --test tests/auth/*.test.ts",
     "test:editorial": "node --test tests/editorial/*.test.ts",
+    "test:public": "node --test tests/public/*.test.ts",
     "test:search": "node --test tests/search/*.test.ts"
   },
   "dependencies": {
