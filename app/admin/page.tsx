@@ -13,7 +13,11 @@ const editorialSections = [
   },
   { description: "Planned after Story workflow", href: null, label: "Places" },
   { description: "Planned after Story workflow", href: null, label: "Themes" },
-  { description: "Planned after Story workflow", href: null, label: "Sources" },
+  {
+    description: "Preserve metadata, transcripts, processing, and rights review",
+    href: "/admin/sources",
+    label: "Sources",
+  },
 ];
 
 type AdminPageProps = {
