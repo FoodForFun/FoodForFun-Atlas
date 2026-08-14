@@ -83,13 +83,29 @@ Include screenshots, migration notes, or other evidence when they are relevant. 
 Run the checks relevant to the change. The current standard validation commands are:
 
 ```bash
+npm ci
+npm audit --audit-level=high
 npm run lint
+npm test
 npm run build
 git diff --check
 git status
 ```
 
 Add or update focused tests when behavior changes. Also perform manual, database, access, content, or mobile testing when the affected area requires it. Record the commands and manual checks in the Pull Request.
+
+For database or authorization changes, also run the committed migrations and
+pgTAP tests against isolated local Postgres:
+
+```bash
+npx --no-install supabase db start
+npx --no-install supabase test db
+npx --no-install supabase stop --no-backup
+```
+
+GitHub Actions repeats the application and database validation from a fresh
+checkout. It never replaces the focused manual, Preview, access-control, or
+responsive checks required by the affected Issue.
 
 ## Documentation Expectations
 

@@ -21,15 +21,45 @@ Production testing verifies the version deployed from `main` at the public URL. 
 Run the following commands from the repository root:
 
 ```bash
-npm install
+npm ci
+npm audit --audit-level=high
 npm run dev
 npm run lint
+npm test
 npm run build
 git diff --check
 git status
 ```
 
 Stop the development server after completing the manual Local checks.
+
+Database or authorization changes also require:
+
+```bash
+npx --no-install supabase db start
+npx --no-install supabase test db
+npx --no-install supabase stop --no-backup
+```
+
+These commands use only local Docker services. Do not add a Supabase access
+token, project reference, database password, or service-role credential for
+local validation.
+
+## Automated Pull Request Validation
+
+GitHub Actions runs two independent jobs for every Pull Request and push to
+`main`:
+
+- Application installs the lockfile, audits dependencies, lints, runs every
+  application test, and builds the production application with safe
+  placeholders.
+- Database starts isolated local Postgres from the committed migrations and
+  empty seed, then runs every pgTAP file.
+
+The workflow has read-only repository permission, pins its reusable Actions to
+immutable commits, and has no Production or remote Supabase credentials. A
+green workflow does not replace manual responsive, accessibility, Preview, or
+Production verification.
 
 ## Local Environment Checks
 
@@ -51,6 +81,7 @@ Confirm that:
 
 Confirm that:
 
+- the Application and Database GitHub Actions jobs pass;
 - Vercel creates a Preview Deployment;
 - the deployment reaches the Ready state;
 - the Preview URL loads successfully;
@@ -89,17 +120,9 @@ Use stable descriptions of deployment results rather than permanently recording 
 
 ## Current Limitations
 
-The current foundation verification does not yet cover:
-
-- database operations;
-- authentication;
-- administrative access;
-- Story creation or editing;
-- image uploads;
-- maps;
-- mobile interaction;
-- accessibility compliance;
-- performance under real traffic; or
-- production security controls for future services.
-
-These areas should be verified through their related roadmap phases and focused GitHub Issues when they are implemented.
+Automated validation covers application logic, migrations, the empty seed,
+database authorization assertions, and production compilation. It does not
+exercise real Production credentials, browser-based Admin sessions, image
+uploads, full accessibility compliance, performance under real traffic,
+backup restoration, or Production security configuration. These require
+focused manual or environment-specific review.

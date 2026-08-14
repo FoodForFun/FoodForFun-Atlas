@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "npm run test:auth && npm run test:editorial && npm run test:public && npm run test:search",
     "test:auth": "node --test tests/auth/*.test.ts",
     "test:editorial": "node --test tests/editorial/*.test.ts",
     "test:public": "node --test tests/public/*.test.ts",

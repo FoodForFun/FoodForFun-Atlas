@@ -65,7 +65,7 @@ When the user gives a clear implementation goal, handle the normal development w
 - Restore unrelated generated files, such as `next-env.d.ts`, when they are not part of the requested change.
 - Verify that `.env.local`, credentials, secrets, tokens, and local-only files are not included.
 
-There is no automated test script yet. For UI changes, also run `npm.cmd run dev` and manually verify the affected route, responsive behavior, loading/empty/error states, browser console, and accessibility basics. For database changes, verify the migration and RLS behavior with both allowed and denied cases.
+Use `npm.cmd test` for the complete application test suite. GitHub Actions repeats the application checks and isolated local pgTAP database tests for Pull Requests and `main`. For UI changes, also run `npm.cmd run dev` and manually verify the affected route, responsive behavior, loading/empty/error states, browser console, and accessibility basics. For database changes, verify the migration and RLS behavior with both allowed and denied cases.
 
 Do not claim a check passed unless it was actually run. Report checks that could not be run and why.
 
