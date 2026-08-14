@@ -128,6 +128,7 @@ const staticEntries: Array<{
 }> = [
   { changeFrequency: "weekly", path: "/", priority: 1 },
   { changeFrequency: "weekly", path: "/stories", priority: 0.9 },
+  { changeFrequency: "weekly", path: "/map", priority: 0.8 },
   { changeFrequency: "weekly", path: "/places", priority: 0.8 },
   { changeFrequency: "weekly", path: "/themes", priority: 0.8 },
   { changeFrequency: "monthly", path: "/about", priority: 0.6 },

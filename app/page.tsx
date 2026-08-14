@@ -58,6 +58,7 @@ export default async function Home() {
           </p>
           <nav className="home-entry-links" aria-label="Begin exploring">
             <Link href="/stories">Browse Stories</Link>
+            <Link href="/map">Open the Map</Link>
             <Link href="/places">Explore Places</Link>
             <Link href="/themes">Explore Themes</Link>
           </nav>
