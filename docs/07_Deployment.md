@@ -32,9 +32,12 @@ Production deployment
 | Install Command | Detected npm default |
 | Output Directory | Detected Next.js default |
 | Custom `vercel.json` | Not currently required |
+| Public Production URL | `https://food-for-fun-atlas.vercel.app` |
 | Custom domain | Not currently configured |
 
-The repository is already connected to Vercel. The initial Production Deployment from `main` completed successfully, and the current homepage loads correctly.
+The repository is connected to Vercel. Pull Requests receive isolated Preview
+Deployments, and reviewed changes from `main` are published to the stable
+Production alias.
 
 ## Environments
 
@@ -42,18 +45,22 @@ The repository is already connected to Vercel. The initial Production Deployment
 
 Local is used for development and validation on the developer's computer before code is pushed.
 
-Install dependencies and start the development server:
+Install the committed dependency graph and start the development server:
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
 Run the standard local validation commands before sharing a change:
 
 ```bash
+npm audit --audit-level=high
 npm run lint
+npm test
 npm run build
+git diff --check
+git status
 ```
 
 Local secrets belong in `.env.local`. This file must never be committed.
@@ -89,7 +96,9 @@ After a merge, verify that the resulting Production Deployment succeeds and that
 
 ## Environment Variables and Secrets
 
-- The public Story pages require `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in Local, Preview, and Production environments.
+- Public reads and protected Admin sessions require `NEXT_PUBLIC_SUPABASE_URL`
+  and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in Local, Preview, and Production
+  environments.
 - Do not commit `.env.local`.
 - Do not commit passwords, API keys, tokens, or credentials.
 - Do not add empty placeholder variables to Vercel.
@@ -100,11 +109,17 @@ After a merge, verify that the resulting Production Deployment succeeds and that
 
 Before opening a Pull Request, inspect the diff and repository status for secrets, generated files, and local environment files.
 
+Application deployment and database deployment remain separate operations.
+Vercel builds must not apply Supabase migrations, alter Production data, or use
+service-role credentials. Database changes require their own reviewed migration,
+isolated local pgTAP validation, backup-aware operational approval, and explicit
+Production execution outside the application deployment workflow.
+
 ## Deployment Review Workflow
 
 1. Create or update a focused branch.
 2. Push the branch to GitHub.
-3. Wait for the Application and Database GitHub Actions jobs.
+3. Wait for the independent Application and Database GitHub Actions jobs.
 4. Wait for the Vercel Preview Deployment.
 5. Review the validation and deployment logs.
 6. Open and test the Preview URL.
@@ -116,10 +131,17 @@ Deployment checks should be recorded alongside the local validation commands and
 
 ## Current Limitations
 
-- The public homepage, Story routes, directories, entity pages, and `/search` route have read-only Supabase access.
-- Public queries rely on Row Level Security and use only the publishable public credential.
-- Database writes and Story administration are not implemented.
-- No authentication is configured.
+- The public homepage, Story routes, directories, entity pages, `/search`, and
+  `/map` have read-only Supabase access.
+- Public queries rely on Row Level Security, column grants, bounded database
+  functions where required, and only the publishable public credential.
+- Invite-only email/password authentication, Publisher TOTP, and protected
+  Story, Source, Theme, relationship, and Place editing are implemented under
+  `/admin`.
+- Protected writes use reviewed Phase A database functions. The application
+  does not use direct table writes, a service-role client, or Auth Admin APIs.
+- User invitation and role management, image uploads, and revision screens are
+  not implemented in the application.
 - No custom domain is configured.
 - No analytics or monitoring service is configured.
 - Deployment success does not replace application, security, access-control, or content review.
