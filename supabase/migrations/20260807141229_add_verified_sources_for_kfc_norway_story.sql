@@ -12,7 +12,8 @@ begin
     and published_at <= now();
 
   if target_story_id is null then
-    raise exception 'Published KFC Norway Story was not found';
+    raise notice 'Published KFC Norway Story was not found; skipping verified Source attachment';
+    return;
   end if;
 
   for source_record in
