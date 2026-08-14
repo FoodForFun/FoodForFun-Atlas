@@ -1537,6 +1537,20 @@ time {
   text-transform: uppercase;
 }
 
+.section-link,
+.back-nav a,
+.notice a,
+.not-found-link,
+.pagination a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+}
+
+.pagination a:last-child {
+  justify-content: flex-end;
+}
+
 .admin-route-shell {
   min-height: calc(100vh - 5.25rem);
   font-family: Arial, Helvetica, sans-serif;
