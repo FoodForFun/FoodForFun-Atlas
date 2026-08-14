@@ -1,0 +1,1 @@
+-- Local development seed data belongs here. Keep fixtures synthetic and free of secrets.
