@@ -1,6 +1,6 @@
 # FoodForFun Atlas — Phase E Story Relationships MVP
 
-**Status:** Implemented for Pull Request review; not merged
+**Status:** Implemented and merged
 
 **Last Updated:** August 2026
 

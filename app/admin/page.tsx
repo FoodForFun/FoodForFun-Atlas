@@ -12,7 +12,11 @@ const editorialSections = [
     label: "Stories",
   },
   { description: "Planned after Story workflow", href: null, label: "Places" },
-  { description: "Planned after Story workflow", href: null, label: "Themes" },
+  {
+    description: "Maintain reusable editorial vocabulary and discovery state",
+    href: "/admin/themes",
+    label: "Themes",
+  },
   {
     description: "Preserve metadata, transcripts, processing, and rights review",
     href: "/admin/sources",
