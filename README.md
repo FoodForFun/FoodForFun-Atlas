@@ -63,7 +63,11 @@ existing protected Phase A RPCs: member-only list/create/edit/preview,
 optimistic concurrency, role-aware workflow transitions, and confirmed
 Publisher AAL2 publication and recovery actions. It does not add user
 management, direct table writes, image uploads, or the Source/Place/Theme
-editors.
+editors. Phase D adds member-only Source list/create/edit routes with separate
+public-safe metadata and private transcript/rights forms, duplicate warnings,
+independent lock versions, and Publisher AAL2 confirmation for Sources connected
+to published or scheduled Stories. It does not yet add Story relationship,
+Place, or Theme management.
 
 ## Project Documentation
 
@@ -77,6 +81,7 @@ editors.
 - [Phase B Authentication and Admin Shell](docs/11_Phase_B_Authentication_Admin_Shell.md)
 - [Phase B.5 Publisher MFA](docs/12_Phase_B5_Publisher_MFA.md)
 - [Phase C Story Editor MVP](docs/13_Phase_C_Story_Editor.md)
+- [Phase D Source Editor MVP](docs/14_Phase_D_Source_Editor.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
