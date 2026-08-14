@@ -1,4 +1,111 @@
+import type { Metadata } from "next";
+
+export const atlasName = "FoodForFun Atlas";
+export const atlasDescription =
+  "Through food, understand people. Through people, understand the world.";
 export const publicSitemapStoryLimit = 1000;
+
+type PublicPageMetadataInput = {
+  description: string;
+  path: string;
+  title: string;
+};
+
+type StoryMetadataInput = {
+  coverImageUrl: string | null;
+  publishedAt: string;
+  slug: string;
+  summary: string;
+  title: string;
+};
+
+const storyArchiveDescription =
+  "Browse published FoodForFun Atlas stories about food, people, places, and everyday life.";
+
+export function createPublicPageMetadata({
+  description,
+  path,
+  title,
+}: PublicPageMetadataInput): Metadata {
+  return {
+    alternates: { canonical: path },
+    description,
+    openGraph: {
+      description,
+      siteName: atlasName,
+      title,
+      type: "website",
+      url: path,
+    },
+    title,
+    twitter: {
+      card: "summary",
+      description,
+      title,
+    },
+  };
+}
+
+export function getSafeSocialImageUrl(value: string | null) {
+  if (!value || value.length > 2_048) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function createStoryMetadata({
+  coverImageUrl,
+  publishedAt,
+  slug,
+  summary,
+  title,
+}: StoryMetadataInput): Metadata {
+  const pageTitle = `${title} | ${atlasName}`;
+  const path = `/stories/${encodeURIComponent(slug)}`;
+  const safeImageUrl = getSafeSocialImageUrl(coverImageUrl);
+  const hasValidPublicationTime = !Number.isNaN(Date.parse(publishedAt));
+
+  return {
+    alternates: { canonical: path },
+    description: summary,
+    openGraph: {
+      description: summary,
+      ...(safeImageUrl ? { images: [safeImageUrl] } : {}),
+      ...(hasValidPublicationTime ? { publishedTime: publishedAt } : {}),
+      siteName: atlasName,
+      title: pageTitle,
+      type: "article",
+      url: path,
+    },
+    title: pageTitle,
+    twitter: {
+      card: safeImageUrl ? "summary_large_image" : "summary",
+      description: summary,
+      ...(safeImageUrl ? { images: [safeImageUrl] } : {}),
+      title: pageTitle,
+    },
+  };
+}
+
+export function createStoryArchiveMetadata(page: number): Metadata {
+  const safePage = Number.isSafeInteger(page) && page > 1 ? page : 1;
+  const pageLabel = safePage > 1 ? ` - Page ${safePage}` : "";
+  const path = safePage > 1 ? `/stories?page=${safePage}` : "/stories";
+
+  return createPublicPageMetadata({
+    description: storyArchiveDescription,
+    path,
+    title: `Stories${pageLabel} | ${atlasName}`,
+  });
+}
 
 type ChangeFrequency = "monthly" | "weekly";
 

@@ -3,15 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { StoryCard } from "@/app/_components/story-card";
+import { createStoryArchiveMetadata } from "@/app/_lib/seo";
 import { getPublicStoryPage } from "@/app/_lib/stories";
 
 export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: "Stories | FoodForFun Atlas",
-  description:
-    "Browse published FoodForFun Atlas stories about food, people, places, and everyday life.",
-};
 
 const storiesPerPage = 12;
 
@@ -31,6 +26,14 @@ function getPageHref(page: number) {
 type StoriesPageProps = {
   searchParams: Promise<{ page?: string | string[] }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: StoriesPageProps): Promise<Metadata> {
+  const { page: pageParam } = await searchParams;
+  const page = getPageNumber(pageParam);
+  return createStoryArchiveMetadata(page);
+}
 
 export default async function StoriesPage({ searchParams }: StoriesPageProps) {
   const { page: pageParam } = await searchParams;

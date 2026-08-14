@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getPublicPlaceDirectory } from "@/app/_lib/places";
+import { createPublicPageMetadata } from "@/app/_lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
+  path: "/places",
   title: "Places | FoodForFun Atlas",
   description:
     "Explore places connected to published FoodForFun Atlas stories.",
-};
+});
 
 function formatMetadataLabel(value: string) {
   return value

@@ -78,6 +78,8 @@ precision controls. Phase H adds the public About page with editorial methods,
 source transparency, privacy boundaries, human review of AI-assisted work, and
 a safe correction path. Phase I adds a bounded public sitemap, explicit crawler
 boundaries, and `noindex` handling for arbitrary Search results.
+Phase J adds canonical URLs and factual Open Graph/Twitter metadata across the
+public Atlas, with real Story publication data and safe optional cover images.
 
 ## Project Documentation
 
@@ -97,6 +99,7 @@ boundaries, and `noindex` handling for arbitrary Search results.
 - [Phase G Place Editor MVP](docs/17_Phase_G_Place_Editor.md)
 - [Phase H Public About](docs/18_Phase_H_Public_About.md)
 - [Phase I Basic SEO](docs/19_Phase_I_Basic_SEO.md)
+- [Phase J Canonical and Social Metadata](docs/20_Phase_J_Social_Metadata.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
