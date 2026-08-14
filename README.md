@@ -66,8 +66,10 @@ management, direct table writes, image uploads, or the Source/Place/Theme
 editors. Phase D adds member-only Source list/create/edit routes with separate
 public-safe metadata and private transcript/rights forms, duplicate warnings,
 independent lock versions, and Publisher AAL2 confirmation for Sources connected
-to published or scheduled Stories. It does not yet add Story relationship,
-Place, or Theme management.
+to published or scheduled Stories. Phase E adds protected Story connections to
+existing Sources, Places, and Themes with per-relationship concurrency and
+Publisher AAL2 confirmation for published changes. Place and Theme editors
+remain future work.
 
 ## Project Documentation
 
@@ -82,6 +84,7 @@ Place, or Theme management.
 - [Phase B.5 Publisher MFA](docs/12_Phase_B5_Publisher_MFA.md)
 - [Phase C Story Editor MVP](docs/13_Phase_C_Story_Editor.md)
 - [Phase D Source Editor MVP](docs/14_Phase_D_Source_Editor.md)
+- [Phase E Story Relationships MVP](docs/15_Phase_E_Story_Relationships.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)

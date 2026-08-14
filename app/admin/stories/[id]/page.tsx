@@ -9,7 +9,10 @@ import {
   getStoryPublicationState,
   isStoryId,
 } from "@/app/_lib/editorial/story";
+import { canManageStoryRelationships } from "@/app/_lib/editorial/relationship";
+import { getStoryRelationshipWorkspace } from "@/app/_lib/editorial/relationships-server";
 import { getEditorialStory } from "@/app/_lib/editorial/stories-server";
+import { StoryConnections } from "@/app/admin/stories/_components/story-connections";
 import { StoryForm } from "@/app/admin/stories/_components/story-form";
 import { StoryRecoveryForm } from "@/app/admin/stories/_components/story-recovery-form";
 import { StoryTransitionForm } from "@/app/admin/stories/_components/story-transition-form";
@@ -29,6 +32,9 @@ const statusMessages: Record<string, string> = {
   restored: "Story restored to the editorial workflow.",
   saved: "Story content saved.",
   transitioned: "Story workflow state updated.",
+  "connection-created": "Story connection added.",
+  "connection-updated": "Story connection saved.",
+  "connection-deleted": "Story connection removed. The related record remains intact.",
 };
 
 function formatDate(value: string | null) {
@@ -51,9 +57,12 @@ export default async function StoryEditorPage({
   }
 
   const access = await requireEditorialAccess(`/admin/stories/${id}`);
-  const storyResult = await getEditorialStory(id);
+  const [storyResult, relationshipResult] = await Promise.all([
+    getEditorialStory(id),
+    getStoryRelationshipWorkspace(id),
+  ]);
 
-  if (storyResult.error) {
+  if (storyResult.error || relationshipResult.error) {
     throw new Error("The editorial Story could not be loaded.");
   }
 
@@ -62,7 +71,17 @@ export default async function StoryEditorPage({
   }
 
   const story = storyResult.data;
+  const relationshipWorkspace = relationshipResult.data;
+  if (!relationshipWorkspace) {
+    throw new Error("The editorial Story connections could not be loaded.");
+  }
   const capabilities = getStoryCapabilities({
+    aal: access.identity.aal,
+    role: access.role,
+    story,
+    userId: access.identity.userId,
+  });
+  const canManageRelationships = canManageStoryRelationships({
     aal: access.identity.aal,
     role: access.role,
     story,
@@ -136,8 +155,9 @@ export default async function StoryEditorPage({
 
       {access.role === "publisher" && access.identity.aal === "aal1" ? (
         <p className="admin-status-banner" role="status">
-          Publication, published corrections, archival, deletion, and recovery
-          require AAL2. <Link href="/admin/mfa/challenge">Verify this session</Link>.
+          Publication, published corrections and connections, archival,
+          deletion, and recovery require AAL2. {" "}
+          <Link href="/admin/mfa/challenge">Verify this session</Link>.
         </p>
       ) : null}
 
@@ -213,6 +233,30 @@ export default async function StoryEditorPage({
                 <pre>{story.body}</pre>
               </div>
             )}
+          </section>
+
+          <section className="admin-editor-section" aria-labelledby="connections-heading">
+            <div className="admin-section-heading">
+              <p className="eyebrow">Connections</p>
+              <h2 id="connections-heading">Sources, Places, and Themes</h2>
+              <p>
+                Connect this Story to existing editorial records. Each
+                connection has its own optimistic lock and does not change the
+                related record.
+              </p>
+              {!canManageRelationships ? (
+                <p>
+                  Connections are read-only for the current role, owner,
+                  lifecycle state, or session assurance.
+                </p>
+              ) : null}
+            </div>
+            <StoryConnections
+              canManage={canManageRelationships}
+              published={story.status === "published"}
+              storyId={story.id}
+              workspace={relationshipWorkspace}
+            />
           </section>
 
           <section className="admin-editor-section" aria-labelledby="workflow-heading">
