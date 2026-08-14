@@ -103,7 +103,21 @@ export default async function StoryPage({ params }: StoryPageProps) {
   const { slug } = await params;
   const storyResult = await getPublicStoryBySlug(slug);
 
-  if (storyResult.error || !storyResult.data) {
+  if (storyResult.error) {
+    return (
+      <main className="site-shell story-page">
+        <nav className="back-nav" aria-label="Breadcrumb">
+          <Link href="/stories">All Stories</Link>
+        </nav>
+        <div className="notice" role="status">
+          <p>Story information is temporarily unavailable.</p>
+          <p>Please return in a little while.</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!storyResult.data) {
     notFound();
   }
 
