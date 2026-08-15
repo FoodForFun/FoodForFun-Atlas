@@ -21,6 +21,13 @@ export type PublicStoryListItem = {
   summary: string;
   cover_image_url: string | null;
   published_at: string;
+  primary_place?: PublicStoryCardPlace | null;
+};
+
+export type PublicStoryCardPlace = {
+  id: string;
+  name: string;
+  slug: string;
 };
 
 export type PublicStoryPage = {
@@ -78,6 +85,11 @@ type PublicRelationshipRow = {
   story_id: string;
 };
 
+type PublicPrimaryPlaceRow = {
+  place: PublicStoryCardPlace | PublicStoryCardPlace[] | null;
+  story_id: string;
+};
+
 function logStoryReadFailure(operation: string, error: unknown) {
   if (error instanceof SupabaseConfigurationError) {
     console.error(`[stories] ${error.message}`);
@@ -125,9 +137,52 @@ export async function getPublicStoryPage(
       return { data: null, error: true };
     }
 
+    const stories = (data ?? []) as PublicStoryListItem[];
+    const { data: primaryPlaceData, error: primaryPlaceError } = await supabase
+      .from("story_places")
+      .select(
+        `
+          story_id,
+          place:places (
+            id,
+            name,
+            slug
+          )
+        `,
+      )
+      .in(
+        "story_id",
+        stories.map(({ id }) => id),
+      )
+      .eq("is_primary", true)
+      .limit(pageSize);
+
+    if (primaryPlaceError) {
+      logStoryReadFailure(
+        "Public Story archive primary Place query",
+        primaryPlaceError,
+      );
+      return { data: null, error: true };
+    }
+
+    const primaryPlacesByStoryId = new Map<string, PublicStoryCardPlace>();
+
+    for (const relationship of (primaryPlaceData ?? []) as PublicPrimaryPlaceRow[]) {
+      const place = Array.isArray(relationship.place)
+        ? relationship.place[0]
+        : relationship.place;
+
+      if (place) {
+        primaryPlacesByStoryId.set(relationship.story_id, place);
+      }
+    }
+
     return {
       data: {
-        stories: (data ?? []) as PublicStoryListItem[],
+        stories: stories.map((story) => ({
+          ...story,
+          primary_place: primaryPlacesByStoryId.get(story.id) ?? null,
+        })),
         total,
       },
       error: false,

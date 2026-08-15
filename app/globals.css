@@ -519,6 +519,19 @@ time {
   line-height: 1.4;
 }
 
+.story-card .story-card-place {
+  margin: 0.75rem 0 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+.story-card-place span {
+  color: var(--ink-muted);
+  text-transform: uppercase;
+}
+
 .story-link {
   display: inline-block;
   margin-top: 1.4rem;
