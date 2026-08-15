@@ -136,6 +136,7 @@ validation in GitHub Actions.
 - [Phase K Related Stories](docs/21_Phase_K_Related_Stories.md)
 - [Phase L Privacy-Preserving Public Map](docs/22_Phase_L_Public_Map.md)
 - [Phase M Continuous Integration](docs/23_Phase_M_Continuous_Integration.md)
+- [Story 发布使用说明（中文）](docs/24_Story_Publishing_Guide.zh-CN.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)
