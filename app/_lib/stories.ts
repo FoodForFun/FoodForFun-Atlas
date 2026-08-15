@@ -41,6 +41,8 @@ export type PublicPlace = {
   slug: string;
   place_type: string | null;
   country_code: string | null;
+  display_order: number;
+  is_primary: boolean;
 };
 
 export type PublicTheme = {
@@ -69,7 +71,14 @@ export type PublicStory = PublicStoryListItem & {
 
 type PublicStoryRow = PublicStoryListItem & {
   body: string;
-  story_places: Array<{ place: PublicPlace | PublicPlace[] | null }>;
+  story_places: Array<{
+    display_order: number;
+    is_primary: boolean;
+    place:
+      | Omit<PublicPlace, "display_order" | "is_primary">
+      | Array<Omit<PublicPlace, "display_order" | "is_primary">>
+      | null;
+  }>;
   story_themes: Array<{ theme: PublicTheme | PublicTheme[] | null }>;
   story_sources: Array<{
     source: PublicSourceMetadata | PublicSourceMetadata[] | null;
@@ -210,6 +219,8 @@ async function getPublicStoryBySlugUncached(
           cover_image_url,
           published_at,
           story_places (
+            is_primary,
+            display_order,
             place:places (
               id,
               name,
@@ -263,10 +274,21 @@ async function getPublicStoryBySlugUncached(
         cover_image_url: storyRow.cover_image_url,
         published_at: storyRow.published_at,
         places: storyRow.story_places
-          .flatMap(({ place }) =>
-            Array.isArray(place) ? place : place ? [place] : [],
+          .flatMap(({ display_order, is_primary, place }) =>
+            (Array.isArray(place) ? place : place ? [place] : []).map(
+              (publicPlace) => ({
+                ...publicPlace,
+                display_order,
+                is_primary,
+              }),
+            ),
           )
-          .sort((left, right) => left.name.localeCompare(right.name)),
+          .sort(
+            (left, right) =>
+              Number(right.is_primary) - Number(left.is_primary) ||
+              left.display_order - right.display_order ||
+              left.name.localeCompare(right.name),
+          ),
         themes: storyRow.story_themes
           .flatMap(({ theme }) =>
             Array.isArray(theme) ? theme : theme ? [theme] : [],

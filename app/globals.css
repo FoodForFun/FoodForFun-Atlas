@@ -1348,6 +1348,11 @@ time {
   text-transform: uppercase;
 }
 
+.place-list .primary-place-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .theme-list {
   grid-template-columns: repeat(auto-fit, minmax(9rem, max-content));
 }
