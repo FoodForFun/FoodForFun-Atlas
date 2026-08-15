@@ -53,3 +53,12 @@ test("public Story detail retains safe connection and Source boundaries", () => 
   assert.match(storyPage, /getRelatedPublicStories\(story\)/);
   assert.match(storyPage, /!relatedStoriesResult\.error/);
 });
+
+test("public Story detail preserves primary Place and editorial order", () => {
+  assert.match(storyServer, /story_places \(\s*is_primary,\s*display_order,/);
+  assert.match(storyServer, /Number\(right\.is_primary\) - Number\(left\.is_primary\)/);
+  assert.match(storyServer, /left\.display_order - right\.display_order/);
+  assert.match(storyPage, /place\.is_primary/);
+  assert.match(storyPage, /className="primary-place-label"/);
+  assert.match(storyPage, /Primary Place/);
+});

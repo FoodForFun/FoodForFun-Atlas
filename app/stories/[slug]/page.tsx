@@ -193,6 +193,11 @@ export default async function StoryPage({ params }: StoryPageProps) {
                               {place.name}
                             </Link>
                           </strong>
+                          {place.is_primary ? (
+                            <span className="primary-place-label">
+                              Primary Place
+                            </span>
+                          ) : null}
                           {placeDetails.length > 0 ? (
                             <span>{placeDetails.join(" · ")}</span>
                           ) : null}
