@@ -31,6 +31,14 @@ export function StoryCard({ context, story }: StoryCardProps) {
         <time dateTime={story.published_at}>
           {dateFormatter.format(new Date(story.published_at))}
         </time>
+        {story.primary_place ? (
+          <p className="story-card-place">
+            <span>Primary Place</span>{" "}
+            <Link href={`/places/${story.primary_place.slug}`}>
+              {story.primary_place.name}
+            </Link>
+          </p>
+        ) : null}
         <h3>
           <Link href={`/stories/${story.slug}`}>{story.title}</Link>
         </h3>

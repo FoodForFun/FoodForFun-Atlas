@@ -4,6 +4,8 @@ import test from "node:test";
 
 const homepage = readFileSync("app/page.tsx", "utf8");
 const storyArchive = readFileSync("app/stories/page.tsx", "utf8");
+const storyCard = readFileSync("app/_components/story-card.tsx", "utf8");
+const storyServer = readFileSync("app/_lib/stories.ts", "utf8");
 const placeDirectory = readFileSync("app/places/page.tsx", "utf8");
 const themeDirectory = readFileSync("app/themes/page.tsx", "utf8");
 
@@ -42,6 +44,21 @@ test("Story archive normalizes pages and keeps pagination bounded", () => {
   assert.match(storyArchive, /getPageHref\(page \+ 1\)/);
   assert.match(storyArchive, /Stories are temporarily unavailable\./);
   assert.match(storyArchive, /The first Atlas stories are being prepared\./);
+});
+
+test("public Story cards include the bounded primary Place relationship", () => {
+  assert.match(storyServer, /\.from\("story_places"\)/);
+  assert.match(storyServer, /\.eq\("is_primary", true\)/);
+  assert.match(storyServer, /\.limit\(pageSize\)/);
+  assert.match(
+    storyServer,
+    /primary_place: primaryPlacesByStoryId\.get\(story\.id\) \?\? null/,
+  );
+  assert.match(storyCard, /story\.primary_place/);
+  assert.ok(
+    storyCard.includes('href={`/places/${story.primary_place.slug}`}'),
+  );
+  assert.match(storyCard, /Primary Place/);
 });
 
 test("Place and Theme directories retain public states, counts, and links", () => {
