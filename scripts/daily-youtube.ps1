@@ -148,6 +148,36 @@ function Convert-SrtToTranscript {
     [System.IO.File]::WriteAllLines($OutputPath, $cleanLines, $utf8NoBom)
 }
 
+function Get-SafeShortTitle {
+    param([string]$Title)
+
+    $shortTitle = ([string]$Title).Normalize([Text.NormalizationForm]::FormKC).Trim()
+    $parts = $shortTitle -split '[!！?？|｜【】\[\]]'
+    $firstPart = $parts | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
+
+    if ($firstPart) {
+        $shortTitle = $firstPart.Trim()
+    }
+
+    foreach ($character in [System.IO.Path]::GetInvalidFileNameChars()) {
+        $shortTitle = $shortTitle.Replace([string]$character, "-")
+    }
+
+    $shortTitle = $shortTitle -replace '_', '-'
+    $shortTitle = $shortTitle -replace '\s+', ' '
+    $shortTitle = $shortTitle.Trim(' ', '.', '-')
+
+    if ($shortTitle.Length -gt 32) {
+        $shortTitle = $shortTitle.Substring(0, 32).Trim(' ', '.', '-')
+    }
+
+    if ([string]::IsNullOrWhiteSpace($shortTitle)) {
+        return "youtube-video"
+    }
+
+    return $shortTitle
+}
+
 if ([string]::IsNullOrWhiteSpace($Url)) {
     $Url = Read-Host "Paste one YouTube URL"
 }
@@ -192,7 +222,37 @@ if ([string]::IsNullOrWhiteSpace($videoId)) {
 }
 
 $canonicalUrl = "https://www.youtube.com/watch?v=$videoId"
-$videoFolder = Join-Path $OutputRoot $videoId
+$shortTitle = Get-SafeShortTitle -Title ([string]$meta.title)
+$generationDate = (Get-Date).ToString("yyyy-MM-dd")
+$folderName = "{0}_{1}_{2}" -f $generationDate, $shortTitle, $videoId
+$newVideoFolder = Join-Path $OutputRoot $folderName
+$legacyVideoFolder = Join-Path $OutputRoot $videoId
+
+New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
+
+$existingVideoFolder = Get-ChildItem `
+    -LiteralPath $OutputRoot `
+    -Directory `
+    -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name.EndsWith("_$videoId") } |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+
+if ($existingVideoFolder) {
+    $videoFolder = $existingVideoFolder.FullName
+
+    if ($existingVideoFolder.Name -match '^\d{4}-\d{2}-\d{2}_') {
+        $generationDate = $existingVideoFolder.Name.Substring(0, 10)
+    }
+}
+elseif (Test-Path -LiteralPath $legacyVideoFolder) {
+    Move-Item -LiteralPath $legacyVideoFolder -Destination $newVideoFolder
+    $videoFolder = $newVideoFolder
+}
+else {
+    $videoFolder = $newVideoFolder
+}
+
 $videoDir = Join-Path $videoFolder "video"
 $subtitleDir = Join-Path $videoFolder "subtitles"
 $metadataDir = Join-Path $videoFolder "metadata"
@@ -240,6 +300,7 @@ if ($uploadDate -and $uploadDate.Length -eq 8) {
 
 Write-Host "Video ID: $videoId"
 Write-Host "Title: $($meta.title)"
+Write-Host "Short title: $shortTitle"
 Write-Host "Channel: $($meta.channel)"
 Write-Host "Folder: $videoFolder"
 
@@ -319,8 +380,14 @@ $videoPath = Get-ChildItem `
     -LiteralPath $videoDir `
     -File `
     -ErrorAction SilentlyContinue |
-    Where-Object { $_.BaseName -eq "video" -and $_.Extension -in @(".mkv", ".mp4", ".webm", ".mov") } |
+    Where-Object { $_.BaseName -in @($shortTitle, "video") -and $_.Extension -in @(".mkv", ".mp4", ".webm", ".mov") } |
     Select-Object -First 1
+
+if ($videoPath -and $videoPath.BaseName -eq "video") {
+    $renamedVideo = "{0}{1}" -f $shortTitle, $videoPath.Extension
+    Rename-Item -LiteralPath $videoPath.FullName -NewName $renamedVideo
+    $videoPath = Get-Item -LiteralPath (Join-Path $videoDir $renamedVideo)
+}
 
 if (-not $videoPath) {
     & $ytDlp @ytBaseArgs `
@@ -328,7 +395,7 @@ if (-not $videoPath) {
         --format "bestvideo*[height<=2160]+bestaudio/best[height<=2160]" `
         --merge-output-format mkv `
         --embed-metadata `
-        --output (Join-Path $videoDir "video.%(ext)s") `
+        --output (Join-Path $videoDir "$shortTitle.%(ext)s") `
         $Url
 
     if ($LASTEXITCODE -ne 0) {
@@ -338,7 +405,7 @@ if (-not $videoPath) {
     $videoPath = Get-ChildItem `
         -LiteralPath $videoDir `
         -File |
-        Where-Object { $_.BaseName -eq "video" -and $_.Extension -in @(".mkv", ".mp4", ".webm", ".mov") } |
+        Where-Object { $_.BaseName -eq $shortTitle -and $_.Extension -in @(".mkv", ".mp4", ".webm", ".mov") } |
         Select-Object -First 1
 }
 
@@ -350,7 +417,15 @@ Write-Host "Video: $($videoPath.FullName)"
 
 Write-Step "[4/7] Downloading thumbnail and subtitles"
 
-$thumbnailPath = Join-Path $metadataDir "thumbnail.jpg"
+$thumbnailPath = Join-Path $metadataDir "$shortTitle.jpg"
+$legacyThumbnailPath = Join-Path $metadataDir "thumbnail.jpg"
+
+if (
+    -not (Test-Path -LiteralPath $thumbnailPath) -and
+    (Test-Path -LiteralPath $legacyThumbnailPath)
+) {
+    Rename-Item -LiteralPath $legacyThumbnailPath -NewName "$shortTitle.jpg"
+}
 
 if (-not (Test-Path -LiteralPath $thumbnailPath)) {
     & $ytDlp @ytBaseArgs `
@@ -358,7 +433,7 @@ if (-not (Test-Path -LiteralPath $thumbnailPath)) {
         --skip-download `
         --write-thumbnail `
         --convert-thumbnails jpg `
-        --output (Join-Path $metadataDir "thumbnail.%(ext)s") `
+        --output (Join-Path $metadataDir "$shortTitle.%(ext)s") `
         $Url
 
     if ($LASTEXITCODE -ne 0) {
@@ -421,10 +496,17 @@ else {
 }
 
 $copyInputPath = Join-Path $transcriptDir "copy-input.md"
+$editorialOverridesPath = Join-Path $metadataDir "editorial-overrides.md"
 $transcript = [System.IO.File]::ReadAllText(
     $transcriptPath,
     [System.Text.Encoding]::UTF8
 )
+$editorialOverrides = if (Test-Path -LiteralPath $editorialOverridesPath) {
+    [System.IO.File]::ReadAllText($editorialOverridesPath, [System.Text.Encoding]::UTF8)
+}
+else {
+    "无"
+}
 $copyInput = @"
 # FoodForFun Daily Copy Input
 
@@ -439,6 +521,14 @@ $videoId
 ## Source title
 
 $($meta.title)
+
+## Short title
+
+$shortTitle
+
+## Thumbnail asset
+
+metadata/$shortTitle.jpg
 
 ## Channel
 
@@ -460,6 +550,10 @@ $($selected -join ", ")
 
 $($meta.description)
 
+## User-confirmed editorial corrections
+
+$editorialOverrides
+
 ## Cleaned transcript
 
 $transcript
@@ -480,6 +574,8 @@ $intake = [ordered]@{
     youtube_id = $videoId
     youtube_url = $canonicalUrl
     title = $meta.title
+    short_title = $shortTitle
+    generated_date = $generationDate
     channel = $meta.channel
     channel_id = $meta.channel_id
     published_at = $publishedAt
@@ -487,10 +583,11 @@ $intake = [ordered]@{
     duration_seconds = $meta.duration
     assets = [ordered]@{
         video = "video/$($videoPath.Name)"
-        thumbnail = if (Test-Path -LiteralPath $thumbnailPath) { "metadata/thumbnail.jpg" } else { $null }
+        thumbnail = if (Test-Path -LiteralPath $thumbnailPath) { "metadata/$shortTitle.jpg" } else { $null }
         metadata = "metadata/info.json"
         description = "metadata/description.txt"
         source_url = "metadata/source-url.txt"
+        editorial_overrides = if (Test-Path -LiteralPath $editorialOverridesPath) { "metadata/editorial-overrides.md" } else { $null }
         transcript = "transcript/transcript.txt"
         copy_input = "transcript/copy-input.md"
         social_copy = "copy/social-cn.md"

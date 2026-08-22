@@ -26,13 +26,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\daily-youtube.
 
 ## 输出目录
 
-每个视频固定输出到 `E:\FoodForFun\Daily\<video_id>\`：
+每个视频固定输出到 `E:\FoodForFun\Daily\<生成日期>_<简略原视频名>_<video_id>\`。例如：
 
 ```text
-<video_id>\
+2026-08-22_無限に続く超絶揚げ物ラッシュ_lyqp0M9FC1A\
+```
+
+同一视频以后再次运行时会继续使用首次创建的目录，不会因日期变化重复下载。完整结构为：
+
+```text
+<生成日期>_<简略原视频名>_<video_id>\
 ├── intake.json
 ├── video\
-│   └── video.mkv
+│   └── <简略原视频名>.mkv
 ├── subtitles\
 │   ├── subtitle.zh-Hans.srt
 │   └── subtitle.ja.srt
@@ -40,7 +46,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\daily-youtube.
 │   ├── info.json
 │   ├── description.txt
 │   ├── source-url.txt
-│   └── thumbnail.jpg
+│   ├── editorial-overrides.md（可选，保存人工确认的修正）
+│   └── <简略原视频名>.jpg
 ├── transcript\
 │   ├── transcript.txt
 │   └── copy-input.md
@@ -54,6 +61,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\daily-youtube.
 ```
 
 同一个 URL 再次运行时会复用已存在的视频、封面和字幕，并重新生成文案草稿。下载中断后可以直接运行同一条命令续传。
+
+如果人工确认了原始简介或字幕中的错误，可以把修正写入 `metadata\editorial-overrides.md`。后续重跑会优先采用这些修正，不会被原始 metadata 覆盖。
 
 ## 依赖
 
