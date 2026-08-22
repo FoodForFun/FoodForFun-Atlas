@@ -15,6 +15,8 @@ if (-not (Test-Path -LiteralPath $VideoFolder)) {
 $VideoFolder = (Resolve-Path -LiteralPath $VideoFolder).Path
 $inputPath = Join-Path $VideoFolder "transcript\copy-input.md"
 $copyPath = Join-Path $VideoFolder "copy\social-cn.md"
+$weiboPath = Join-Path $VideoFolder "copy\weibo-cn.md"
+$xiaohongshuBilibiliPath = Join-Path $VideoFolder "copy\xiaohongshu-bilibili-cn.md"
 $extractedPath = Join-Path $VideoFolder "atlas\extracted.json"
 $atlasPath = Join-Path $VideoFolder "atlas\atlas-entry.md"
 $promptPath = Join-Path $VideoFolder "metadata\codex-prompt.tmp"
@@ -44,11 +46,13 @@ SOURCE MATERIAL
 $inputText
 ============================================================
 
-Create exactly these THREE UTF-8 files relative to the current working directory:
+Create exactly these FIVE UTF-8 files relative to the current working directory:
 
 1. atlas/extracted.json
 2. copy/social-cn.md
 3. atlas/atlas-entry.md
+4. copy/weibo-cn.md
+5. copy/xiaohongshu-bilibili-cn.md
 
 Do not modify any source asset.
 
@@ -152,13 +156,58 @@ After the front matter, use these sections:
 The Source section must include the canonical YouTube URL and channel.
 The Editorial Review section must list items that need human verification.
 
-Actually write all three files now.
+FILE 4: copy/weibo-cn.md
+------------------------------------------------------------
+Write a finished Simplified Chinese Weibo post that can be copied and published as-is.
+
+Requirements:
+- No Markdown headings, editorial notes, placeholders, or alternative versions.
+- Open with one concrete hook rather than a generic introduction.
+- Keep it concise and readable, approximately 500 to 800 Chinese characters.
+- Preserve the most useful shop, person, food, number, and local-context facts.
+- If the source covers multiple shops, name each shop clearly.
+- Do not include facts listed as uncertain or unsupported.
+- Any value that appears in items_to_verify must be omitted from this publishable file.
+- End with the canonical YouTube source URL on its own line.
+- End with 3 to 6 relevant Weibo hashtags using #话题# syntax.
+
+FILE 5: copy/xiaohongshu-bilibili-cn.md
+------------------------------------------------------------
+Write one finished Simplified Chinese version suitable for both a Xiaohongshu post
+and a Bilibili description. It must be ready to copy and publish as-is.
+
+Use this publishing layout, without Markdown headings or editorial notes:
+
+First line: one factual, engaging title no longer than 20 Chinese characters.
+Then a blank line.
+Then the complete body in short mobile-friendly paragraphs.
+Then a compact shop information block with shop names and only fully supported addresses.
+Then the canonical YouTube source URL.
+Last line: 5 to 10 relevant hashtags in normal #话题 format.
+
+Requirements:
+- Approximately 800 to 1400 Chinese characters.
+- Story-driven but restrained; no exaggerated marketing language.
+- Preserve concrete preparation details, people, history, prices, and quantities when supported.
+- If the source covers multiple shops, include all of them.
+- Do not expose editorial uncertainty inside the publishing copy; simply omit unsupported facts.
+- Any value that appears in items_to_verify must be omitted from this publishable file.
+- If an address contains a conflict, duplication, or suspected transcription error, include the shop name but omit that address entirely.
+- Do not write calls to action such as “快去打卡” or “一定要去”.
+
+Actually write all five files now.
 "@
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($promptPath, $prompt, $utf8NoBom)
 
-foreach ($outputPath in @($copyPath, $extractedPath, $atlasPath)) {
+foreach ($outputPath in @(
+    $copyPath,
+    $weiboPath,
+    $xiaohongshuBilibiliPath,
+    $extractedPath,
+    $atlasPath
+)) {
     if (Test-Path -LiteralPath $outputPath) {
         Remove-Item -LiteralPath $outputPath -Force
     }
@@ -179,7 +228,13 @@ if ($codexExitCode -ne 0) {
     throw "Codex failed with exit code: $codexExitCode. Prompt kept at $promptPath"
 }
 
-foreach ($outputPath in @($copyPath, $extractedPath, $atlasPath)) {
+foreach ($outputPath in @(
+    $copyPath,
+    $weiboPath,
+    $xiaohongshuBilibiliPath,
+    $extractedPath,
+    $atlasPath
+)) {
     if (
         -not (Test-Path -LiteralPath $outputPath) -or
         (Get-Item -LiteralPath $outputPath).Length -eq 0
@@ -235,5 +290,7 @@ Remove-Item -LiteralPath $promptPath -Force
 
 Write-Host "Generated:"
 Write-Host $copyPath
+Write-Host $weiboPath
+Write-Host $xiaohongshuBilibiliPath
 Write-Host $extractedPath
 Write-Host $atlasPath

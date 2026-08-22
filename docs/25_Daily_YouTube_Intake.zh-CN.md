@@ -21,7 +21,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\daily-youtube.
 5. 清洗主字幕，移除时间码、标签和相邻重复行；
 6. 提取地点、人物、食物、价格、店铺历史和当地背景；
 7. 生成 FoodForFun 中文社交媒体文案；
-8. 生成 Atlas Markdown 草稿和结构化 JSON，所有不确定信息留空或进入待核实列表。
+8. 生成可直接复制发布的微博版与小红书/B站共用版；
+9. 生成 Atlas Markdown 草稿和结构化 JSON，所有不确定信息留空或进入待核实列表。
 
 ## 输出目录
 
@@ -44,7 +45,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\daily-youtube.
 │   ├── transcript.txt
 │   └── copy-input.md
 ├── copy\
-│   └── social-cn.md
+│   ├── social-cn.md
+│   ├── weibo-cn.md
+│   └── xiaohongshu-bilibili-cn.md
 └── atlas\
     ├── extracted.json
     └── atlas-entry.md
