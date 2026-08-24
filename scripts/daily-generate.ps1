@@ -104,7 +104,7 @@ closely follow this layout and be ready to copy, edit, or publish:
 
 # 地区 | 菜品或故事亮点、菜品或故事亮点、菜品或故事亮点
 
-Write two substantial paragraphs for each shop or story stop. Start them naturally
+Write one compact paragraph for each shop or story stop. Start them naturally
 as “第一站在……”, “第二站是……”, and “最后一站到了……” when there are three stops.
 Prioritize the food's preparation, texture, people, history, useful quantities,
 and local meaning. Include seating or operating details only when they materially
@@ -144,7 +144,10 @@ Style rules:
   inaccurate “一只鸡”.
 - Match the reference layout above exactly; do not add title alternatives, an
   information card, review notes, a source URL, or any other section.
-- Target approximately 1200 to 2200 Chinese characters.
+- Keep the ENTIRE file, including title, shop information, credit, closing lines,
+  and hashtags, between approximately 550 and 750 Chinese characters.
+- Choose only the strongest facts. Remove secondary menu items, routine operating
+  details, repeated explanations, and decorative conclusions.
 - Omit any uncertain address entirely rather than printing a placeholder.
 - Include any address explicitly supplied under user-confirmed editorial corrections.
 - Do not copy example facts into another video's post; the layout and voice are
@@ -185,12 +188,12 @@ The Editorial Review section must list items that need human verification.
 FILE 4: copy/weibo-cn.md
 ------------------------------------------------------------
 Write a finished Simplified Chinese Weibo post that can be copied and published as-is.
-Use the same title, full narrative, shop/channel/address block, ChatGPT credit,
+Use the same title, condensed narrative, shop/channel/address block, ChatGPT credit,
 FoodForFun follow line, and closing slogan as copy/social-cn.md.
 
 Requirements:
 - Preserve the '# 地区 | ...' title and limited bold emphasis from the master copy.
-- Target approximately 1200 to 2200 Chinese characters.
+- Keep the ENTIRE file between approximately 550 and 750 Chinese characters.
 - Preserve the most useful shop, person, food, number, and local-context facts.
 - If the source covers multiple shops, name each shop clearly.
 - Do not include facts listed as uncertain or unsupported.
@@ -203,11 +206,11 @@ FILE 5: copy/xiaohongshu-bilibili-cn.md
 Write one finished Simplified Chinese version suitable for both a Xiaohongshu post
 and a Bilibili description. It must be ready to copy and publish as-is.
 
-Use the same '# 地区 | ...' title, full narrative, shop/channel/address block,
+Use the same '# 地区 | ...' title, condensed narrative, shop/channel/address block,
 ChatGPT credit, FoodForFun follow line, and closing slogan as copy/social-cn.md.
 
 Requirements:
-- Target approximately 1200 to 2200 Chinese characters.
+- Keep the ENTIRE file between approximately 550 and 750 Chinese characters.
 - Story-driven but restrained; no exaggerated marketing language.
 - Preserve concrete preparation details, people, history, prices, and quantities when supported.
 - If the source covers multiple shops, include all of them.
@@ -293,6 +296,17 @@ $atlasText = [System.IO.File]::ReadAllText(
     $atlasPath,
     [System.Text.Encoding]::UTF8
 )
+
+foreach ($publishPath in @($copyPath, $weiboPath, $xiaohongshuBilibiliPath)) {
+    $publishText = [System.IO.File]::ReadAllText(
+        $publishPath,
+        [System.Text.Encoding]::UTF8
+    )
+
+    if ($publishText.Length -lt 500 -or $publishText.Length -gt 850) {
+        throw "Publish copy must stay near 600 characters: $publishPath ($($publishText.Length))"
+    }
+}
 
 foreach ($requiredText in @(
     "# ",
