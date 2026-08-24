@@ -199,6 +199,7 @@ if (-not $SkipGeneration) {
 }
 
 $ytBaseArgs = @(
+    "--no-plugin-dirs",
     "--remote-components", "ejs:github",
     "--no-playlist"
 )
