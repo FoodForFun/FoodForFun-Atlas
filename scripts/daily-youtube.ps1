@@ -478,6 +478,48 @@ foreach ($language in $selected) {
     }
 }
 
+$hasChineseSubtitle = $false
+
+foreach ($language in $selected) {
+    if ($language -match '^zh(?:-|$)') {
+        $hasChineseSubtitle = $true
+        break
+    }
+}
+
+if (-not $hasChineseSubtitle -and $primary) {
+    $sourceSubtitle = Join-Path $subtitleDir "subtitle.$($primary.Language).srt"
+    $translatedSubtitle = Join-Path $subtitleDir "subtitle.zh-Hans.srt"
+    $translationScript = Join-Path $PSScriptRoot "daily-translate-subtitle.ps1"
+
+    if (
+        (Test-Path -LiteralPath $sourceSubtitle) -and
+        ((Test-Path -LiteralPath $translatedSubtitle) -or -not $SkipGeneration)
+    ) {
+        Write-Host "No Chinese subtitle supplied by YouTube; translating $($primary.Language) to zh-Hans..."
+
+        try {
+            & $translationScript `
+                -InputPath $sourceSubtitle `
+                -OutputPath $translatedSubtitle `
+                -CodexPath ([string]$codex)
+
+            if (Test-Path -LiteralPath $translatedSubtitle) {
+                Add-UniqueLanguage -Languages $selected -Language "zh-Hans"
+                $subtitleSources["zh-Hans"] = "generated_translation"
+                $subtitleFiles.Add($translatedSubtitle)
+                $primary = [pscustomobject]@{
+                    Language = "zh-Hans"
+                    Source = "generated_translation"
+                }
+            }
+        }
+        catch {
+            Write-Warning "Chinese subtitle translation failed; keeping the original subtitle. $($_.Exception.Message)"
+        }
+    }
+}
+
 Write-Step "[5/7] Cleaning the primary transcript"
 
 $transcriptPath = Join-Path $transcriptDir "transcript.txt"
