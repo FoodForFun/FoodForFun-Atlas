@@ -106,13 +106,17 @@ closely follow this layout and be ready to copy, edit, or publish:
 
 Write one compact paragraph for each shop or story stop. Start them naturally
 as “第一站在……”, “第二站是……”, and “最后一站到了……” when there are three stops.
-Prioritize food above the creator's working routine. Explain unfamiliar dishes,
+Open with one short paragraph that establishes the shop: where it is, who runs it,
+what kind of place it is, and one distinctive spatial, historical, or operating detail.
+End that paragraph with a natural transition into the food. After this introduction,
+prioritize food above the creator's working routine. Explain unfamiliar dishes,
 ingredients, seasonings, drinks, preparation, texture, and flavor in terms a Chinese
 reader can understand. Add concise, source-grounded regional context such as climate,
 agriculture, trade, migration, or culinary history when it explains why the food exists.
-Include people only where they illuminate the food. Omit schedules, division of labor,
-shop logistics, seating, equipment, and general entrepreneurship unless indispensable
-to understanding a dish. Bold only one key food fact or technique per stop. Close with
+Include people only where they illuminate the food. Beyond the opening setup, omit
+schedules, division of labor, shop logistics, seating, equipment, and general
+entrepreneurship unless indispensable to understanding a dish. Bold only one key food
+fact or technique per stop. Close with
 a short comparison that connects the foods or places.
 
 频道：$markdownBreak
