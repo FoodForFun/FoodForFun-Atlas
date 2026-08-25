@@ -106,10 +106,14 @@ closely follow this layout and be ready to copy, edit, or publish:
 
 Write one compact paragraph for each shop or story stop. Start them naturally
 as “第一站在……”, “第二站是……”, and “最后一站到了……” when there are three stops.
-Prioritize the food's preparation, texture, people, history, useful quantities,
-and local meaning. Include seating or operating details only when they materially
-help the story; do not turn the post into a chronological shift log. Bold only one
-key fact or technique per stop. Close with a short comparison that connects the stops.
+Prioritize food above the creator's working routine. Explain unfamiliar dishes,
+ingredients, seasonings, drinks, preparation, texture, and flavor in terms a Chinese
+reader can understand. Add concise, source-grounded regional context such as climate,
+agriculture, trade, migration, or culinary history when it explains why the food exists.
+Include people only where they illuminate the food. Omit schedules, division of labor,
+shop logistics, seating, equipment, and general entrepreneurship unless indispensable
+to understanding a dish. Bold only one key food fact or technique per stop. Close with
+a short comparison that connects the foods or places.
 
 频道：$markdownBreak
 频道名
@@ -148,6 +152,9 @@ Style rules:
   and hashtags, between approximately 550 and 750 Chinese characters.
 - Choose only the strongest facts. Remove secondary menu items, routine operating
   details, repeated explanations, and decorative conclusions.
+- For a culturally specific food, do not merely list its name or ingredients: briefly
+  explain what it is, where it comes from, its characteristic taste, and why it matters
+  locally. Give the same treatment to distinctive spices and traditional drinks.
 - Omit any uncertain address entirely rather than printing a placeholder.
 - Include any address explicitly supplied under user-confirmed editorial corrections.
 - Do not copy example facts into another video's post; the layout and voice are
