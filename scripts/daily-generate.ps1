@@ -20,6 +20,7 @@ $xiaohongshuBilibiliPath = Join-Path $VideoFolder "copy\xiaohongshu-bilibili-cn.
 $extractedPath = Join-Path $VideoFolder "atlas\extracted.json"
 $atlasPath = Join-Path $VideoFolder "atlas\atlas-entry.md"
 $promptPath = Join-Path $VideoFolder "metadata\codex-prompt.tmp"
+$editorialOverridesPath = Join-Path $VideoFolder "metadata\editorial-overrides.md"
 $thumbnail = Get-ChildItem -LiteralPath (Join-Path $VideoFolder "metadata") -File -Filter "*.jpg" | Select-Object -First 1
 $thumbnailRelative = if ($thumbnail) { "../metadata/$($thumbnail.Name)" } else { "" }
 $markdownBreak = "  "
@@ -37,6 +38,31 @@ if ([string]::IsNullOrWhiteSpace($inputText)) {
     throw "Generation input is empty."
 }
 
+$latestEditorialOverrides = if (Test-Path -LiteralPath $editorialOverridesPath) {
+    [System.IO.File]::ReadAllText(
+        $editorialOverridesPath,
+        [System.Text.Encoding]::UTF8
+    )
+}
+else {
+    ""
+}
+
+$latestEditorialSection = if ([string]::IsNullOrWhiteSpace($latestEditorialOverrides)) {
+    ""
+}
+else {
+    @"
+
+LATEST USER-CONFIRMED EDITORIAL CORRECTIONS
+============================================================
+$latestEditorialOverrides
+============================================================
+These latest corrections override any older correction block, subtitle, or metadata
+value in SOURCE MATERIAL.
+"@
+}
+
 $prompt = @"
 You are running the FoodForFun Daily YouTube Intake v2 editorial step.
 
@@ -50,6 +76,7 @@ SOURCE MATERIAL
 ============================================================
 $inputText
 ============================================================
+$latestEditorialSection
 
 Create exactly these FIVE UTF-8 files relative to the current working directory:
 
