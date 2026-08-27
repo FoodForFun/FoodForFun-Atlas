@@ -633,6 +633,7 @@ $intake = [ordered]@{
         editorial_overrides = if (Test-Path -LiteralPath $editorialOverridesPath) { "metadata/editorial-overrides.md" } else { $null }
         transcript = "transcript/transcript.txt"
         copy_input = "transcript/copy-input.md"
+        editorial_preview = "review/editorial-preview.md"
         social_copy = "copy/social-cn.md"
         weibo_copy = "copy/weibo-cn.md"
         xiaohongshu_bilibili_copy = "copy/xiaohongshu-bilibili-cn.md"
@@ -647,9 +648,9 @@ $intake = [ordered]@{
     }
     workflow = [ordered]@{
         download = "complete"
-        generation = if ($SkipGeneration) { "skipped" } else { "pending" }
+        generation = if ($SkipGeneration) { "skipped" } else { "drafting_review" }
     }
-    status = if ($SkipGeneration) { "download_complete" } else { "ready_for_generation" }
+    status = if ($SkipGeneration) { "download_complete" } else { "drafting_editorial_review" }
     updated_at = (Get-Date).ToString("o")
 }
 
@@ -661,21 +662,17 @@ $intakePath = Join-Path $videoFolder "intake.json"
 )
 
 if (-not $SkipGeneration) {
-    Write-Step "[7/7] Extracting facts and generating both drafts"
-    $generatorPath = Join-Path $PSScriptRoot "daily-generate.ps1"
+    Write-Step "[7/7] Drafting title and content for approval"
+    $reviewerPath = Join-Path $PSScriptRoot "daily-review.ps1"
 
-    if (-not (Test-Path -LiteralPath $generatorPath)) {
-        throw "Generator not found: $generatorPath"
+    if (-not (Test-Path -LiteralPath $reviewerPath)) {
+        throw "Editorial reviewer not found: $reviewerPath"
     }
 
-    & $generatorPath -VideoFolder $videoFolder -CodexPath $codex
+    & $reviewerPath -VideoFolder $videoFolder -CodexPath $codex
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "Content generation failed."
-    }
-
-    $intake.workflow.generation = "complete"
-    $intake.status = "complete"
+    $intake.workflow.generation = "awaiting_approval"
+    $intake.status = "awaiting_editorial_approval"
     $intake.updated_at = (Get-Date).ToString("o")
     [System.IO.File]::WriteAllText(
         $intakePath,
@@ -690,3 +687,9 @@ Write-Host $videoFolder
 Write-Host ""
 Write-Host "Daily use:"
 Write-Host "  .\scripts\daily-youtube.ps1 `"$canonicalUrl`""
+if (-not $SkipGeneration) {
+    Write-Host ""
+    Write-Host "Next: review review\editorial-preview.md with the user."
+    Write-Host "Only after approval run:"
+    Write-Host "  .\scripts\daily-finalize.ps1 -VideoFolder `"$videoFolder`""
+}

@@ -2,7 +2,9 @@
     [Parameter(Mandatory = $true, Position = 0)]
     [string]$VideoFolder,
 
-    [string]$CodexPath = "codex"
+    [string]$CodexPath = "codex",
+
+    [string]$ApprovedEditorialPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -63,6 +65,35 @@ value in SOURCE MATERIAL.
 "@
 }
 
+$approvedEditorialSection = if ([string]::IsNullOrWhiteSpace($ApprovedEditorialPath)) {
+    ""
+}
+else {
+    if (-not (Test-Path -LiteralPath $ApprovedEditorialPath)) {
+        throw "Approved editorial file not found: $ApprovedEditorialPath"
+    }
+
+    $approvedEditorialText = [System.IO.File]::ReadAllText(
+        (Resolve-Path -LiteralPath $ApprovedEditorialPath).Path,
+        [System.Text.Encoding]::UTF8
+    )
+
+    if ([string]::IsNullOrWhiteSpace($approvedEditorialText)) {
+        throw "Approved editorial file is empty: $ApprovedEditorialPath"
+    }
+
+    @"
+
+USER-APPROVED TITLE AND CONTENT
+============================================================
+$approvedEditorialText
+============================================================
+The title and narrative above have been explicitly approved by the user. Preserve
+their wording in copy/social-cn.md. Adapt only platform hashtags and required metadata
+blocks for the other publishing files. Atlas fields must stay consistent with them.
+"@
+}
+
 $prompt = @"
 You are running the FoodForFun Daily YouTube Intake v2 editorial step.
 
@@ -77,6 +108,7 @@ SOURCE MATERIAL
 $inputText
 ============================================================
 $latestEditorialSection
+$approvedEditorialSection
 
 Create exactly these FIVE UTF-8 files relative to the current working directory:
 
