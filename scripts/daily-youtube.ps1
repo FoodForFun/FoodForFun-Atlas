@@ -478,25 +478,58 @@ foreach ($language in $selected) {
     }
 }
 
-$hasChineseSubtitle = $false
+$downloadedChineseSubtitle = $null
 
 foreach ($language in $selected) {
-    if ($language -match '^zh(?:-|$)') {
-        $hasChineseSubtitle = $true
+    $candidateSubtitle = Join-Path $subtitleDir "subtitle.$language.srt"
+    if ($language -match '^zh(?:-|$)' -and (Test-Path -LiteralPath $candidateSubtitle)) {
+        $downloadedChineseSubtitle = [pscustomobject]@{
+            Language = $language
+            Source = $subtitleSources[$language]
+        }
         break
     }
 }
 
-if (-not $hasChineseSubtitle -and $primary) {
-    $sourceSubtitle = Join-Path $subtitleDir "subtitle.$($primary.Language).srt"
+if ($downloadedChineseSubtitle) {
+    $primary = $downloadedChineseSubtitle
+}
+else {
+    $translationSource = $null
+
+    foreach ($language in $selected) {
+        $candidateSubtitle = Join-Path $subtitleDir "subtitle.$language.srt"
+        if ($language -notmatch '^zh(?:-|$)' -and (Test-Path -LiteralPath $candidateSubtitle)) {
+            $translationSource = [pscustomobject]@{
+                Language = $language
+                Source = $subtitleSources[$language]
+            }
+            break
+        }
+    }
+
+    if (-not $translationSource) {
+        $primary = $null
+    }
+    else {
+        $primary = $translationSource
+    }
+
+    $sourceSubtitle = if ($translationSource) {
+        Join-Path $subtitleDir "subtitle.$($translationSource.Language).srt"
+    }
+    else {
+        $null
+    }
     $translatedSubtitle = Join-Path $subtitleDir "subtitle.zh-Hans.srt"
     $translationScript = Join-Path $PSScriptRoot "daily-translate-subtitle.ps1"
 
     if (
+        $sourceSubtitle -and
         (Test-Path -LiteralPath $sourceSubtitle) -and
         ((Test-Path -LiteralPath $translatedSubtitle) -or -not $SkipGeneration)
     ) {
-        Write-Host "No Chinese subtitle supplied by YouTube; translating $($primary.Language) to zh-Hans..."
+        Write-Host "No Chinese subtitle file is available; translating $($translationSource.Language) to zh-Hans..."
 
         try {
             & $translationScript `
