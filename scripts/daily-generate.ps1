@@ -372,8 +372,17 @@ foreach ($publishPath in @($copyPath, $weiboPath, $xiaohongshuBilibiliPath)) {
         $publishPath,
         [System.Text.Encoding]::UTF8
     )
+    $maximumLength = if (
+        $publishPath -eq $copyPath -and
+        -not [string]::IsNullOrWhiteSpace($ApprovedEditorialPath)
+    ) {
+        1100
+    }
+    else {
+        850
+    }
 
-    if ($publishText.Length -lt 500 -or $publishText.Length -gt 850) {
+    if ($publishText.Length -lt 500 -or $publishText.Length -gt $maximumLength) {
         throw "Publish copy must stay near 600 characters: $publishPath ($($publishText.Length))"
     }
 }
