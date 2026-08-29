@@ -376,7 +376,7 @@ foreach ($publishPath in @($copyPath, $weiboPath, $xiaohongshuBilibiliPath)) {
         $publishPath -eq $copyPath -and
         -not [string]::IsNullOrWhiteSpace($ApprovedEditorialPath)
     ) {
-        1100
+        1300
     }
     else {
         850
