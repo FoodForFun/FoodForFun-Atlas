@@ -64,6 +64,11 @@ export default async function AdminStoriesPage() {
           <Link className="admin-primary-link" href="/admin/stories/new">
             Create Story draft
           </Link>
+          {access.role === "publisher" ? (
+            <Link className="admin-primary-link" href="/admin/stories/import">
+              Publish daily package
+            </Link>
+          ) : null}
         </div>
       </header>
 

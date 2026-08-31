@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { type EditorialPlace, isPlaceId, type ValidatedPlaceInput } from "@/app/_lib/editorial/place";
 import { createAuthenticatedServerSupabaseClient } from "@/app/_lib/supabase/auth-server";
 
-const columns = "id, name, slug, place_type, parent_place_id, country_code, latitude, longitude, location_precision, is_verified, created_at, updated_at, created_by, deleted_at, lock_version";
+const columns = "id, name, slug, place_type, parent_place_id, country_code, latitude, longitude, location_precision, is_verified, created_at, updated_at, created_by, deleted_at, lock_version, street_address, postal_code";
 type Result<T> = { data: T; error: false } | { data: null; error: true };
 
 function isPlaceRow(value: unknown): value is EditorialPlace {

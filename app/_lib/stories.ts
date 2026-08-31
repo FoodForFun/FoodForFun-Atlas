@@ -60,17 +60,34 @@ export type PublicSourceMetadata = {
   original_published_at: string | null;
   original_language: string | null;
   availability_status: string | null;
+  external_id: string | null;
 };
 
 export type PublicStory = PublicStoryListItem & {
   body: string;
+  body_zh: string | null;
   places: PublicPlace[];
   themes: PublicTheme[];
   sources: PublicSourceMetadata[];
+  summary_zh: string | null;
+  tags: string[];
+  title_zh: string | null;
+  seo_description: string | null;
+  seo_description_zh: string | null;
+  seo_title: string | null;
+  seo_title_zh: string | null;
 };
 
 type PublicStoryRow = PublicStoryListItem & {
   body: string;
+  body_zh: string | null;
+  summary_zh: string | null;
+  tags: string[];
+  title_zh: string | null;
+  seo_description: string | null;
+  seo_description_zh: string | null;
+  seo_title: string | null;
+  seo_title_zh: string | null;
   story_places: Array<{
     display_order: number;
     is_primary: boolean;
@@ -216,6 +233,14 @@ async function getPublicStoryBySlugUncached(
           slug,
           summary,
           body,
+          body_zh,
+          title_zh,
+          summary_zh,
+          tags,
+          seo_title,
+          seo_description,
+          seo_title_zh,
+          seo_description_zh,
           cover_image_url,
           published_at,
           story_places (
@@ -245,7 +270,8 @@ async function getPublicStoryBySlugUncached(
               publisher,
               original_published_at,
               original_language,
-              availability_status
+              availability_status,
+              external_id
             )
           )
         `,
@@ -271,8 +297,16 @@ async function getPublicStoryBySlugUncached(
         slug: storyRow.slug,
         summary: storyRow.summary,
         body: storyRow.body,
+        body_zh: storyRow.body_zh,
         cover_image_url: storyRow.cover_image_url,
         published_at: storyRow.published_at,
+        summary_zh: storyRow.summary_zh,
+        tags: storyRow.tags,
+        title_zh: storyRow.title_zh,
+        seo_description: storyRow.seo_description,
+        seo_description_zh: storyRow.seo_description_zh,
+        seo_title: storyRow.seo_title,
+        seo_title_zh: storyRow.seo_title_zh,
         places: storyRow.story_places
           .flatMap(({ display_order, is_primary, place }) =>
             (Array.isArray(place) ? place : place ? [place] : []).map(

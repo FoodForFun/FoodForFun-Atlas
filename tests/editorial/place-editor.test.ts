@@ -3,12 +3,12 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { type EditorialPlace, canCreatePlaces, canEditPlace, getSafePlaceMutationError, validatePlaceInput } from "../../app/_lib/editorial/place.ts";
 
-const base = { country_code: " no ", is_verified: true, latitude: "59.9139", location_precision: "city", longitude: "10.7522", name: " Oslo ", parent_place_id: "", place_type: "CITY", slug: "OSLO" };
-function place(changes: Partial<EditorialPlace> = {}): EditorialPlace { return { country_code: "NO", created_at: "2026-08-14T00:00:00Z", created_by: null, deleted_at: null, id: "6fc3e20e-5406-4020-96ee-d20c8845e643", is_verified: true, latitude: 59.9139, location_precision: "city", lock_version: 1, longitude: 10.7522, name: "Oslo", parent_place_id: null, place_type: "city", slug: "oslo", updated_at: "2026-08-14T00:00:00Z", ...changes }; }
+const base = { country_code: " no ", is_verified: true, latitude: "59.9139", location_precision: "city", longitude: "10.7522", name: " Oslo ", parent_place_id: "", place_type: "CITY", postal_code: " 0154 ", slug: "OSLO", street_address: " Dronningens gate 1 " };
+function place(changes: Partial<EditorialPlace> = {}): EditorialPlace { return { country_code: "NO", created_at: "2026-08-14T00:00:00Z", created_by: null, deleted_at: null, id: "6fc3e20e-5406-4020-96ee-d20c8845e643", is_verified: true, latitude: 59.9139, location_precision: "city", lock_version: 1, longitude: 10.7522, name: "Oslo", parent_place_id: null, place_type: "city", postal_code: "0154", slug: "oslo", street_address: "Dronningens gate 1", updated_at: "2026-08-14T00:00:00Z", ...changes }; }
 
 test("Place validation normalizes safe geography fields", () => {
   const result = validatePlaceInput(base);
-  assert.deepEqual(result.data, { country_code: "NO", is_verified: true, latitude: 59.9139, location_precision: "city", longitude: 10.7522, name: "Oslo", parent_place_id: null, place_type: "city", slug: "oslo" });
+  assert.deepEqual(result.data, { country_code: "NO", is_verified: true, latitude: 59.9139, location_precision: "city", longitude: 10.7522, name: "Oslo", parent_place_id: null, place_type: "city", postal_code: "0154", slug: "oslo", street_address: "Dronningens gate 1" });
 });
 
 test("Place validation rejects invalid identity, geography, and self-parenting", () => {
@@ -52,7 +52,7 @@ test("Place routes authorize and reads use only the editorial view", () => {
 test("Place writes use protected RPCs, locks, fail-closed duplicates, and no service role", () => {
   const actions = readFileSync("app/admin/places/actions.ts", "utf8");
   const form = readFileSync("app/admin/places/_components/place-form.tsx", "utf8");
-  for (const rpc of ["create_editorial_entity", "update_editorial_entity"]) assert.equal(actions.includes(`"${rpc}"`), true, rpc);
+  for (const rpc of ["create_atlas_place", "update_atlas_place"]) assert.equal(actions.includes(`"${rpc}"`), true, rpc);
   assert.doesNotMatch(actions, /\.(insert|update|delete)\(/);
   assert.doesNotMatch(actions, /service[_-]?role/i);
   assert.match(actions, /duplicates\.error/);

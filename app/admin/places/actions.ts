@@ -9,7 +9,7 @@ import { createAuthenticatedServerSupabaseClient } from "@/app/_lib/supabase/aut
 import type { PlaceActionState } from "@/app/admin/places/action-state";
 
 function value(data: FormData, name: string) { const item = data.get(name); return typeof item === "string" ? item.trim() : ""; }
-function input(data: FormData): PlaceInput { return { country_code: value(data, "country_code"), is_verified: value(data, "is_verified") === "true", latitude: value(data, "latitude"), location_precision: value(data, "location_precision"), longitude: value(data, "longitude"), name: value(data, "name"), parent_place_id: value(data, "parent_place_id"), place_type: value(data, "place_type"), slug: value(data, "slug") }; }
+function input(data: FormData): PlaceInput { return { country_code: value(data, "country_code"), is_verified: value(data, "is_verified") === "true", latitude: value(data, "latitude"), location_precision: value(data, "location_precision"), longitude: value(data, "longitude"), name: value(data, "name"), parent_place_id: value(data, "parent_place_id"), place_type: value(data, "place_type"), postal_code: value(data, "postal_code"), slug: value(data, "slug"), street_address: value(data, "street_address") }; }
 function lock(data: FormData) { const number = Number(value(data, "lock_version")); return Number.isSafeInteger(number) && number > 0 ? number : null; }
 function error(message: string, fieldErrors: PlaceActionState["fieldErrors"] = {}): PlaceActionState { return { fieldErrors, message, status: "error" }; }
 function duplicate(count: number): PlaceActionState { return { fieldErrors: {}, message: `${count} possible duplicate Place${count === 1 ? "" : "s"} matched this name or slug. Review existing Places before confirming a separate record.`, status: "duplicate" }; }
@@ -37,7 +37,7 @@ export async function createPlaceAction(_state: PlaceActionState, formData: Form
     if (result.parents.error || !result.parents.data) return error("The selected parent hierarchy could not be verified. No Place was created.");
     if (result.duplicates.error) return error("Possible duplicate Places could not be checked. No Place was created.");
     if (result.duplicates.data.length && value(formData, "confirm_duplicate") !== "confirm-duplicate") return duplicate(result.duplicates.data.length);
-    const response = await supabase.rpc("create_editorial_entity", { payload: validated.data, target_entity_type: "places" });
+    const response = await supabase.rpc("create_atlas_place", { payload: validated.data });
     if (response.error) return error(getSafePlaceMutationError(response.error));
     id = returnedId(response.data);
   } catch { return error("The Place could not be created. Your entered values remain here."); }
@@ -63,7 +63,7 @@ export async function updatePlaceAction(_state: PlaceActionState, formData: Form
     if (result.parents.error || !result.parents.data) return error("The selected parent would create an invalid or unverifiable hierarchy.");
     if (result.duplicates.error) return error("Possible duplicate Places could not be checked. No changes were saved.");
     if (result.duplicates.data.length && value(formData, "confirm_duplicate") !== "confirm-duplicate") return duplicate(result.duplicates.data.length);
-    const response = await supabase.rpc("update_editorial_entity", { changes: validated.data, confirmed: false, expected_lock_version: version, target_entity_id: id, target_entity_type: "places" });
+    const response = await supabase.rpc("update_atlas_place", { changes: validated.data, expected_lock_version: version, target_place_id: id });
     if (response.error) return error(getSafePlaceMutationError(response.error));
     if (returnedId(response.data) !== id) return error("The Place save result could not be verified.");
   } catch { return error("The Place could not be saved. Your entered values remain here."); }

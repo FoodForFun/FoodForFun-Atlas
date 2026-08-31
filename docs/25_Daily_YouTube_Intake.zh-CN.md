@@ -78,7 +78,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\daily-finalize
 │   └── xiaohongshu-bilibili-cn.md
 └── atlas\
     ├── extracted.json
-    └── atlas-entry.md
+    ├── atlas-entry.md
+    └── publish-package.json（文案确认后生成的一键发布包）
 ```
 
 同一个 URL 再次运行时会复用已存在的视频、封面和字幕，并重新生成编辑预览。下载中断后可以直接运行同一条命令续传。未经确认，不会生成或覆盖 `copy` 与 `atlas` 下的最终文案文件。
@@ -95,4 +96,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\daily-finalize
 
 ## 编辑边界
 
-所有 AI 生成内容都保持 `draft` 状态。发布前需要人工核对店名、地址、人物姓名、价格、历史信息、地点公开精度和来源权利状态。
+所有未经人工确认的 AI 生成内容都保持 `draft` 状态。发布前需要人工核对店名、地址、人物姓名、价格、历史信息、地点公开精度和来源权利状态；只有 `daily-finalize.ps1` 使用已确认预览生成的发布包才会标记 `editorial_approved: true`。
+
+## Atlas 发布包
+
+文案确认并运行 `daily-finalize.ps1` 后，会额外生成
+`atlas/publish-package.json`。该文件包含中英文 Story、tags、YouTube/Bilibili/
+Weibo Sources、Place 层级与地址坐标，以及 cuisine/food/content_topic Themes。
+后台 Publisher 完成 MFA 后，可在 `/admin/stories/import` 使用一次
+**Publish package to Atlas** 完成导入和发布。
+
+详细字段、发布检查、语言切换和地区视频 fallback 见
+`docs/26_Atlas_Publishing.zh-CN.md`。

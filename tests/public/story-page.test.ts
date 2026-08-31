@@ -54,6 +54,12 @@ test("public Story detail retains safe connection and Source boundaries", () => 
   assert.match(storyPage, /!relatedStoriesResult\.error/);
 });
 
+test("Atlas publishing grants bilingual Story fields without exposing precise addresses", () => {
+  const migration = readFileSync("supabase/migrations/20260831143000_add_atlas_publishing_fields.sql", "utf8");
+  assert.match(migration, /grant select \([^;]*title_zh[^;]*body_zh[^;]*tags[^;]*\) on table public\.stories/s);
+  assert.doesNotMatch(migration, /grant select \([^;]*street_address[^;]*\) on table public\.places/s);
+});
+
 test("public Story detail preserves primary Place and editorial order", () => {
   assert.match(storyServer, /story_places \(\s*is_primary,\s*display_order,/);
   assert.match(storyServer, /Number\(right\.is_primary\) - Number\(left\.is_primary\)/);

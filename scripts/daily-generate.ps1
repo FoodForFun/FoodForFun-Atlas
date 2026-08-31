@@ -21,6 +21,7 @@ $weiboPath = Join-Path $VideoFolder "copy\weibo-cn.md"
 $xiaohongshuBilibiliPath = Join-Path $VideoFolder "copy\xiaohongshu-bilibili-cn.md"
 $extractedPath = Join-Path $VideoFolder "atlas\extracted.json"
 $atlasPath = Join-Path $VideoFolder "atlas\atlas-entry.md"
+$publishPackagePath = Join-Path $VideoFolder "atlas\publish-package.json"
 $promptPath = Join-Path $VideoFolder "metadata\codex-prompt.tmp"
 $editorialOverridesPath = Join-Path $VideoFolder "metadata\editorial-overrides.md"
 $thumbnail = Get-ChildItem -LiteralPath (Join-Path $VideoFolder "metadata") -File -Filter "*.jpg" | Select-Object -First 1
@@ -110,13 +111,14 @@ $inputText
 $latestEditorialSection
 $approvedEditorialSection
 
-Create exactly these FIVE UTF-8 files relative to the current working directory:
+Create exactly these SIX UTF-8 files relative to the current working directory:
 
 1. atlas/extracted.json
 2. copy/social-cn.md
 3. atlas/atlas-entry.md
 4. copy/weibo-cn.md
 5. copy/xiaohongshu-bilibili-cn.md
+6. atlas/publish-package.json
 
 Do not modify any source asset.
 
@@ -291,7 +293,67 @@ Requirements:
 - Do not include the Weibo label or tags.
 - End with 8 to 12 relevant hashtags using normal #话题 format, including #FoodForFun.
 
-Actually write all five files now.
+FILE 6: atlas/publish-package.json
+------------------------------------------------------------
+Write valid JSON that can be imported into the existing Atlas Story, Source, Place,
+and Theme editors. It must contain:
+{
+  "editorial_approved": true,
+  "story": {
+    "title": "independent English title",
+    "title_zh": "the exact approved Chinese title",
+    "slug": "lowercase-hyphenated-slug",
+    "summary": "independent English summary",
+    "summary_zh": "Chinese summary",
+    "body": "independent English body",
+    "body_zh": "the exact approved Chinese body",
+    "seo_title": "",
+    "seo_title_zh": "",
+    "seo_description": "",
+    "seo_description_zh": "",
+    "cover_image_url": "",
+    "original_language": "",
+    "tags": []
+  },
+  "sources": [
+    {
+      "source_type": "youtube_video|bilibili_video|weibo_video",
+      "source_url": "",
+      "external_id": "",
+      "original_title": "",
+      "publisher": "",
+      "original_published_at": "",
+      "availability_status": "available"
+    }
+  ],
+  "places": [
+    {
+      "name": "shop, neighborhood, city, or country name",
+      "slug": "lowercase-hyphenated-place-slug",
+      "place_type": "shop|neighborhood|district|city|region|country",
+      "parent_slug": "",
+      "street_address": "",
+      "postal_code": "",
+      "country_code": "",
+      "latitude": null,
+      "longitude": null,
+      "location_precision": "exact|neighborhood|city|region|hidden",
+      "is_primary": false
+    }
+  ],
+  "themes": [
+    { "name": "", "slug": "lowercase-hyphenated-theme-slug", "theme_group": "cuisine|food|content_topic" }
+  ]
+}
+The first Source must be the original YouTube video and must include both its
+canonical URL and video ID. Add Bilibili and Weibo Sources only when a verified
+matching source is supplied; never invent matches. Mark the shop or most specific
+documented location as the primary Place. Use empty strings/nulls for unknown
+address or coordinates. Include at least one cuisine or food Theme and at least one
+content_topic Theme. Free-form discovery terms belong in story.tags. The English and Chinese Story fields
+must each be complete, server-renderable text and must not depend on an embed.
+
+Actually write all six files now.
 "@
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -302,7 +364,8 @@ foreach ($outputPath in @(
     $weiboPath,
     $xiaohongshuBilibiliPath,
     $extractedPath,
-    $atlasPath
+    $atlasPath,
+    $publishPackagePath
 )) {
     if (Test-Path -LiteralPath $outputPath) {
         Remove-Item -LiteralPath $outputPath -Force
@@ -329,7 +392,8 @@ foreach ($outputPath in @(
     $weiboPath,
     $xiaohongshuBilibiliPath,
     $extractedPath,
-    $atlasPath
+    $atlasPath,
+    $publishPackagePath
 )) {
     if (
         -not (Test-Path -LiteralPath $outputPath) -or
@@ -364,6 +428,10 @@ $copyText = [System.IO.File]::ReadAllText(
 )
 $atlasText = [System.IO.File]::ReadAllText(
     $atlasPath,
+    [System.Text.Encoding]::UTF8
+)
+$publishPackageText = [System.IO.File]::ReadAllText(
+    $publishPackagePath,
     [System.Text.Encoding]::UTF8
 )
 
@@ -412,6 +480,32 @@ if (
     throw "atlas/atlas-entry.md is missing required front matter or sections."
 }
 
+try {
+    $publishPackage = $publishPackageText | ConvertFrom-Json
+    if ($publishPackage.editorial_approved -ne $true) {
+        throw "editorial_approved must be true"
+    }
+    if ([string]::IsNullOrWhiteSpace($publishPackage.story.body)) {
+        throw "English Story body is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($publishPackage.story.body_zh)) {
+        throw "Chinese Story body is required"
+    }
+    $youtubeSource = $publishPackage.sources | Where-Object {
+        $_.source_type -eq "youtube_video"
+    } | Select-Object -First 1
+    if (
+        $null -eq $youtubeSource -or
+        [string]::IsNullOrWhiteSpace($youtubeSource.source_url) -or
+        [string]::IsNullOrWhiteSpace($youtubeSource.external_id)
+    ) {
+        throw "Original YouTube URL and video ID are required"
+    }
+}
+catch {
+    throw "atlas/publish-package.json is invalid: $($_.Exception.Message)"
+}
+
 Remove-Item -LiteralPath $promptPath -Force
 
 Write-Host "Generated:"
@@ -420,3 +514,4 @@ Write-Host $weiboPath
 Write-Host $xiaohongshuBilibiliPath
 Write-Host $extractedPath
 Write-Host $atlasPath
+Write-Host $publishPackagePath

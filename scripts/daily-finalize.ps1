@@ -38,7 +38,8 @@ if (-not (Test-Path -LiteralPath $generatorPath)) {
 if (Test-Path -LiteralPath $intakePath) {
     $intake = Get-Content -LiteralPath $intakePath -Raw -Encoding UTF8 | ConvertFrom-Json
     $intake.workflow.generation = "complete"
-    $intake.status = "complete"
+    $intake.workflow.atlas = "ready_to_import"
+    $intake.status = "ready_for_atlas"
     $intake.updated_at = (Get-Date).ToString("o")
     [System.IO.File]::WriteAllText(
         $intakePath,
@@ -47,4 +48,4 @@ if (Test-Path -LiteralPath $intakePath) {
     )
 }
 
-Write-Host "Final publishing files generated after editorial approval."
+Write-Host "Final publishing files and atlas/publish-package.json generated after editorial approval."

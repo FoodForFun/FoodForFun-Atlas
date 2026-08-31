@@ -5,6 +5,7 @@ const contentSecurityPolicy = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
+  "frame-src 'self' https://www.youtube-nocookie.com https://player.bilibili.com",
 ].join("; ");
 
 const securityHeaders = [

@@ -21,6 +21,7 @@ function createStory(
   return {
     atlas_insight: null,
     body: "A careful body.",
+    body_zh: null,
     cover_image_url: null,
     created_at: "2026-08-12T00:00:00.000Z",
     created_by: ownerId,
@@ -30,12 +31,17 @@ function createStory(
     original_language: null,
     published_at: null,
     seo_description: null,
+    seo_description_zh: null,
     seo_title: null,
+    seo_title_zh: null,
     slug: "careful-story",
     status: "draft",
     subtitle: null,
     summary: "A careful summary.",
+    summary_zh: null,
+    tags: [],
     title: "A Careful Story",
+    title_zh: null,
     updated_at: "2026-08-12T00:00:00.000Z",
     ...changes,
   };
@@ -45,14 +51,20 @@ test("Story validation normalizes approved fields and safe image URLs", () => {
   const result = validateStoryInput({
     atlas_insight: "  A restrained observation.  ",
     body: "  Body text.  ",
+    body_zh: "  中文正文。  ",
     cover_image_url: "https://images.example/story.jpg",
     original_language: "  Japanese  ",
     seo_description: "",
+    seo_description_zh: "",
     seo_title: "",
+    seo_title_zh: "",
     slug: "morning-work",
     subtitle: "",
     summary: "  Morning work in context.  ",
+    summary_zh: "  清晨工作。  ",
+    tags: "breakfast, local history, breakfast",
     title: "  Morning Work  ",
+    title_zh: "  清晨工作  ",
   });
 
   assert.ok(result.data);
@@ -60,6 +72,7 @@ test("Story validation normalizes approved fields and safe image URLs", () => {
   assert.equal(result.data.summary, "Morning work in context.");
   assert.equal(result.data.atlas_insight, "A restrained observation.");
   assert.equal(result.data.subtitle, null);
+  assert.deepEqual(result.data.tags, ["breakfast", "local history"]);
   assert.equal(
     result.data.cover_image_url,
     "https://images.example/story.jpg",
@@ -70,14 +83,20 @@ test("Story validation rejects missing content, invalid slugs, and unsafe URLs",
   const result = validateStoryInput({
     atlas_insight: "",
     body: " ",
+    body_zh: "",
     cover_image_url: "javascript:alert(1)",
     original_language: "",
     seo_description: "",
+    seo_description_zh: "",
     seo_title: "",
+    seo_title_zh: "",
     slug: "Not A Slug",
     subtitle: "",
     summary: "",
+    summary_zh: "",
+    tags: "",
     title: "",
+    title_zh: "",
   });
 
   assert.equal(result.data, null);
@@ -303,8 +322,8 @@ test("all Story writes use the five protected Phase A RPCs", () => {
   );
 
   for (const rpc of [
-    "create_editorial_entity",
-    "update_editorial_entity",
+    "create_atlas_story",
+    "update_atlas_story",
     "transition_story_status",
     "soft_delete_entity",
     "restore_soft_deleted_entity",
@@ -316,4 +335,15 @@ test("all Story writes use the five protected Phase A RPCs", () => {
   assert.doesNotMatch(actions, /service[_-]?role/i);
   assert.doesNotMatch(actions, /created_by|updated_by|published_by|deleted_by/);
   assert.doesNotMatch(storyForm, /created_by|updated_by|published_by|deleted_by/);
+});
+
+test("approved daily packages require Publisher AAL2 and protected import/publication RPCs", () => {
+  const actions = readFileSync("app/admin/stories/import/actions.ts", "utf8");
+  const page = readFileSync("app/admin/stories/import/page.tsx", "utf8");
+  assert.match(actions, /role !== "publisher"/);
+  assert.match(actions, /identity\.aal !== "aal2"/);
+  assert.match(actions, /import_approved_atlas_package/);
+  assert.match(actions, /transition_story_status/);
+  assert.doesNotMatch(actions, /service[_-]?role/i);
+  assert.match(page, /requireEditorialAccess/);
 });
