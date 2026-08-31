@@ -137,6 +137,7 @@ validation in GitHub Actions.
 - [Phase L Privacy-Preserving Public Map](docs/22_Phase_L_Public_Map.md)
 - [Phase M Continuous Integration](docs/23_Phase_M_Continuous_Integration.md)
 - [Story 发布使用说明（中文）](docs/24_Story_Publishing_Guide.zh-CN.md)
+- [Atlas 一键发布与多地区视频源（中文）](docs/26_Atlas_Publishing.zh-CN.md)
 - [Frontend Structure](docs/05_Frontend_Structure.md)
 - [MVP Roadmap](docs/06_MVP_Roadmap.md)
 - [Deployment](docs/07_Deployment.md)

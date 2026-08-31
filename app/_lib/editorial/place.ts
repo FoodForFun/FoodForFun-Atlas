@@ -24,6 +24,8 @@ export type EditorialPlace = {
   parent_place_id: string | null;
   place_type: string | null;
   slug: string;
+  street_address: string | null;
+  postal_code: string | null;
   updated_at: string;
 };
 
@@ -37,11 +39,13 @@ export type PlaceInput = {
   parent_place_id: string;
   place_type: string;
   slug: string;
+  street_address: string;
+  postal_code: string;
 };
 
 export type ValidatedPlaceInput = Omit<
   PlaceInput,
-  "country_code" | "latitude" | "location_precision" | "longitude" | "parent_place_id" | "place_type"
+  "country_code" | "latitude" | "location_precision" | "longitude" | "parent_place_id" | "place_type" | "street_address" | "postal_code"
 > & {
   country_code: string | null;
   latitude: number | null;
@@ -49,6 +53,8 @@ export type ValidatedPlaceInput = Omit<
   longitude: number | null;
   parent_place_id: string | null;
   place_type: string | null;
+  street_address: string | null;
+  postal_code: string | null;
 };
 
 export type PlaceFieldErrors = Partial<Record<keyof PlaceInput, string>>;
@@ -90,6 +96,8 @@ export function validatePlaceInput(
     ["name", "Place name", 200, true],
     ["slug", "Place slug", 200, true],
     ["place_type", "Place type", 100, false],
+    ["street_address", "Street address", 500, false],
+    ["postal_code", "Postal code", 40, false],
   ] as const) {
     const error = bounded(input[field], label, max, required);
     if (error) errors[field] = error;
@@ -146,6 +154,8 @@ export function validatePlaceInput(
       parent_place_id: parentId || null,
       place_type: placeType || null,
       slug,
+      street_address: input.street_address.trim() || null,
+      postal_code: input.postal_code.trim() || null,
     },
     errors,
   };

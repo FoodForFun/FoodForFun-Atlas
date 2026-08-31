@@ -27,7 +27,13 @@ export type EditorialStory = {
   status: StoryStatus;
   subtitle: string | null;
   summary: string;
+  summary_zh: string | null;
+  tags: string[];
   title: string;
+  title_zh: string | null;
+  body_zh: string | null;
+  seo_description_zh: string | null;
+  seo_title_zh: string | null;
   updated_at: string;
 };
 
@@ -41,7 +47,13 @@ export type StoryInput = {
   slug: string;
   subtitle: string;
   summary: string;
+  summary_zh: string;
+  tags: string;
   title: string;
+  title_zh: string;
+  body_zh: string;
+  seo_description_zh: string;
+  seo_title_zh: string;
 };
 
 export type ValidatedStoryInput = {
@@ -54,7 +66,13 @@ export type ValidatedStoryInput = {
   slug: string;
   subtitle: string | null;
   summary: string;
+  summary_zh: string | null;
+  tags: string[];
   title: string;
+  title_zh: string | null;
+  body_zh: string | null;
+  seo_description_zh: string | null;
+  seo_title_zh: string | null;
 };
 
 export type StoryFieldErrors = Partial<Record<keyof StoryInput, string>>;
@@ -177,11 +195,16 @@ export function validateStoryInput(input: StoryInput):
     ["body", "Body", 100_000],
   ] as const;
   const optionalChecks = [
+    ["title_zh", "Chinese title", 200],
+    ["summary_zh", "Chinese summary", 1_000],
+    ["body_zh", "Chinese body", 100_000],
     ["subtitle", "Subtitle", 300],
     ["atlas_insight", "Atlas insight", 2_000],
     ["original_language", "Original language", 100],
     ["seo_title", "SEO title", 300],
     ["seo_description", "SEO description", 1_000],
+    ["seo_title_zh", "Chinese SEO title", 300],
+    ["seo_description_zh", "Chinese SEO description", 1_000],
   ] as const;
 
   for (const [field, label, maximum] of requiredChecks) {
@@ -208,6 +231,20 @@ export function validateStoryInput(input: StoryInput):
   }
 
   const coverImageUrl = optionalValue(input.cover_image_url);
+  const tags = Array.from(
+    new Set(
+      input.tags
+        .split(/[,\n]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (tags.length > 30) {
+    errors.tags = "Use 30 tags or fewer.";
+  } else if (tags.some((tag) => tag.length > 80)) {
+    errors.tags = "Each tag must be 80 characters or fewer.";
+  }
 
   if (coverImageUrl && !getSafeHttpUrl(coverImageUrl)) {
     errors.cover_image_url =
@@ -229,7 +266,13 @@ export function validateStoryInput(input: StoryInput):
       slug,
       subtitle: optionalValue(input.subtitle),
       summary: input.summary.trim(),
+      summary_zh: optionalValue(input.summary_zh),
+      tags,
       title: input.title.trim(),
+      title_zh: optionalValue(input.title_zh),
+      body_zh: optionalValue(input.body_zh),
+      seo_description_zh: optionalValue(input.seo_description_zh),
+      seo_title_zh: optionalValue(input.seo_title_zh),
     },
     errors,
   };
@@ -323,7 +366,7 @@ export function getStoryTransitions({
     transitions.push({
       confirmation:
         "I confirm that this Story has passed publication checks and may become public at the UTC time below.",
-      label: "Publish or schedule",
+      label: "Publish to Atlas",
       publishedAtRequired: true,
       status: "published",
     });

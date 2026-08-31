@@ -24,6 +24,12 @@ const editorialStoryColumns = [
   "created_by",
   "deleted_at",
   "lock_version",
+  "title_zh",
+  "summary_zh",
+  "body_zh",
+  "seo_title_zh",
+  "seo_description_zh",
+  "tags",
 ].join(", ");
 
 export type EditorialStoryListItem = Pick<
@@ -35,6 +41,9 @@ export type EditorialStoryListItem = Pick<
   | "slug"
   | "status"
   | "title"
+  | "title_zh"
+  | "summary_zh"
+  | "body_zh"
   | "updated_at"
 >;
 
@@ -62,6 +71,7 @@ export type PreviewStory = Pick<
   EditorialStory,
   | "atlas_insight"
   | "body"
+  | "body_zh"
   | "cover_image_url"
   | "id"
   | "lock_version"
@@ -69,7 +79,9 @@ export type PreviewStory = Pick<
   | "status"
   | "subtitle"
   | "summary"
+  | "summary_zh"
   | "title"
+  | "title_zh"
 >;
 
 export type EditorialStoryPreview = {
@@ -134,6 +146,9 @@ const previewStoryColumns = [
   "published_at",
   "deleted_at",
   "lock_version",
+  "title_zh",
+  "summary_zh",
+  "body_zh",
 ].join(", ");
 
 function isStoryRow(value: unknown): value is EditorialStory {
@@ -390,6 +405,7 @@ export async function getEditorialStoryPreview(
         story: {
           atlas_insight: story.atlas_insight,
           body: story.body,
+          body_zh: story.body_zh,
           cover_image_url: story.cover_image_url,
           id: story.id,
           lock_version: story.lock_version,
@@ -397,7 +413,9 @@ export async function getEditorialStoryPreview(
           status: story.status,
           subtitle: story.subtitle,
           summary: story.summary,
+          summary_zh: story.summary_zh,
           title: story.title,
+          title_zh: story.title_zh,
         },
         themes: orderedThemes,
       },

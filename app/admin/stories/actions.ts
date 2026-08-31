@@ -28,6 +28,12 @@ const storyFields = [
   "seo_title",
   "seo_description",
   "cover_image_url",
+  "title_zh",
+  "summary_zh",
+  "body_zh",
+  "seo_title_zh",
+  "seo_description_zh",
+  "tags",
 ] as const satisfies ReadonlyArray<keyof StoryInput>;
 
 function readFormValue(formData: FormData, name: string) {
@@ -121,9 +127,8 @@ export async function createStoryAction(
 
   try {
     const supabase = await createAuthenticatedServerSupabaseClient();
-    const { data, error } = await supabase.rpc("create_editorial_entity", {
+    const { data, error } = await supabase.rpc("create_atlas_story", {
       payload: validated.data,
-      target_entity_type: "stories",
     });
 
     if (error) {
@@ -207,12 +212,11 @@ export async function updateStoryAction(
       );
     }
 
-    const { data, error } = await supabase.rpc("update_editorial_entity", {
+    const { data, error } = await supabase.rpc("update_atlas_story", {
       changes: validated.data,
       confirmed: story.status === "published",
       expected_lock_version: expectedLockVersion,
-      target_entity_id: storyId,
-      target_entity_type: "stories",
+      target_story_id: storyId,
     });
 
     if (error) {

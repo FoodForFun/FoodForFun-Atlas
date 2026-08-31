@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 
 import { StoryCard } from "@/app/_components/story-card";
 import {
@@ -12,6 +13,7 @@ import {
   getPublicStoryBySlug,
   type PublicSourceMetadata,
 } from "@/app/_lib/stories";
+import { getCountryCodeFromHeaders, selectVideoSources } from "@/app/_lib/video-sources";
 
 export const dynamic = "force-dynamic";
 
@@ -74,12 +76,20 @@ function getSourceAvailabilityMessage(source: PublicSourceMetadata) {
 
 type StoryPageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lang?: string | string[] }>;
 };
+
+function requestedLanguage(value: string | string[] | undefined) {
+  const language = Array.isArray(value) ? value[0] : value;
+  return language === "zh" ? "zh" : "en";
+}
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: StoryPageProps): Promise<Metadata> {
   const { slug } = await params;
+  const language = requestedLanguage((await searchParams).lang);
   const storyResult = await getPublicStoryBySlug(slug);
 
   if (storyResult.error || !storyResult.data) {
@@ -90,17 +100,35 @@ export async function generateMetadata({
     });
   }
 
-  return createStoryMetadata({
+  const story = storyResult.data;
+  const chinese = language === "zh" && story.title_zh && story.summary_zh;
+  const metadata = createStoryMetadata({
     coverImageUrl: storyResult.data.cover_image_url,
     publishedAt: storyResult.data.published_at,
     slug: storyResult.data.slug,
-    summary: storyResult.data.summary,
-    title: storyResult.data.title,
+    summary: chinese
+      ? story.seo_description_zh || story.summary_zh || story.summary
+      : story.seo_description || story.summary,
+    title: chinese
+      ? story.seo_title_zh || story.title_zh || story.title
+      : story.seo_title || story.title,
   });
+  const englishPath = `/stories/${story.slug}`;
+  const chinesePath = `${englishPath}?lang=zh`;
+  return {
+    ...metadata,
+    alternates: {
+      canonical: language === "zh" ? chinesePath : englishPath,
+      languages: story.title_zh && story.summary_zh && story.body_zh
+        ? { en: englishPath, "zh-CN": chinesePath }
+        : { en: englishPath },
+    },
+  };
 }
 
-export default async function StoryPage({ params }: StoryPageProps) {
+export default async function StoryPage({ params, searchParams }: StoryPageProps) {
   const { slug } = await params;
+  const language = requestedLanguage((await searchParams).lang);
   const storyResult = await getPublicStoryBySlug(slug);
 
   if (storyResult.error) {
@@ -122,8 +150,15 @@ export default async function StoryPage({ params }: StoryPageProps) {
   }
 
   const story = storyResult.data;
+  const useChinese = language === "zh" && Boolean(story.title_zh && story.summary_zh && story.body_zh);
+  const displayTitle = useChinese ? story.title_zh! : story.title;
+  const displaySummary = useChinese ? story.summary_zh! : story.summary;
+  const displayBody = useChinese ? story.body_zh! : story.body;
+  const countryCode = getCountryCodeFromHeaders(await headers());
+  const videoSources = selectVideoSources(story.sources, countryCode);
+  const preferredVideo = videoSources[0] ?? null;
   const relatedStoriesResult = await getRelatedPublicStories(story);
-  const paragraphs = story.body
+  const paragraphs = displayBody
     .split(/\r?\n\s*\r?\n/)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
@@ -137,10 +172,18 @@ export default async function StoryPage({ params }: StoryPageProps) {
       </nav>
 
       <article>
-        <header className="story-header">
-          <p className="eyebrow">Atlas Story</p>
-          <h1>{story.title}</h1>
-          <p className="story-summary">{story.summary}</p>
+        <header className="story-header" lang={useChinese ? "zh-CN" : "en"}>
+          <div className="story-header-topline">
+            <p className="eyebrow">Atlas Story</p>
+            <nav className="language-switcher" aria-label="Story language">
+              <Link aria-current={!useChinese ? "page" : undefined} href={`/stories/${story.slug}`}>EN</Link>
+              {story.title_zh && story.summary_zh && story.body_zh ? (
+                <Link aria-current={useChinese ? "page" : undefined} href={`/stories/${story.slug}?lang=zh`}>中文</Link>
+              ) : null}
+            </nav>
+          </div>
+          <h1>{displayTitle}</h1>
+          <p className="story-summary">{displaySummary}</p>
           <time dateTime={story.published_at}>
             Published {dateFormatter.format(new Date(story.published_at))}
           </time>
@@ -157,11 +200,51 @@ export default async function StoryPage({ params }: StoryPageProps) {
           />
         ) : null}
 
-        <div className="story-body">
+        {preferredVideo ? (
+          <section className="story-video" aria-labelledby="story-video-heading">
+            <p className="eyebrow">Watch</p>
+            <h2 id="story-video-heading">Original video</h2>
+            {preferredVideo.embedUrl ? (
+              <iframe
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                src={preferredVideo.embedUrl}
+                title={`${preferredVideo.label}: ${preferredVideo.title}`}
+              />
+            ) : (
+              <div className="video-link-fallback">
+                <p>The preferred {preferredVideo.label} source opens on its original platform.</p>
+                <a href={preferredVideo.url} rel="noreferrer" target="_blank">Open {preferredVideo.label} source</a>
+              </div>
+            )}
+            <p className="video-region-note">
+              Source order is selected from the server-provided country code{countryCode ? ` (${countryCode})` : ""}.
+            </p>
+            <ul className="video-fallback-list">
+              {videoSources.map((source, index) => (
+                <li key={source.id}>
+                  <a href={source.url} rel="noreferrer" target="_blank">
+                    {index === 0 ? "Preferred" : "Fallback"}: {source.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        <div className="story-body" lang={useChinese ? "zh-CN" : "en"}>
           {paragraphs.map((paragraph, index) => (
             <p key={index}>{paragraph}</p>
           ))}
         </div>
+
+        {story.tags.length > 0 ? (
+          <ul className="story-tags" aria-label="Story tags">
+            {story.tags.map((tag) => <li key={tag}>{tag}</li>)}
+          </ul>
+        ) : null}
 
         {story.places.length > 0 || story.themes.length > 0 ? (
           <section

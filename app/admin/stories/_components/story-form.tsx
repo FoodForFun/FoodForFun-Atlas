@@ -14,17 +14,23 @@ type StoryFormRecord = Pick<
   EditorialStory,
   | "atlas_insight"
   | "body"
+  | "body_zh"
   | "cover_image_url"
   | "id"
   | "lock_version"
   | "original_language"
   | "seo_description"
+  | "seo_description_zh"
   | "seo_title"
+  | "seo_title_zh"
   | "slug"
   | "status"
   | "subtitle"
   | "summary"
+  | "summary_zh"
+  | "tags"
   | "title"
+  | "title_zh"
 >;
 
 type StoryFormProps =
@@ -79,7 +85,7 @@ export function StoryForm({ mode, story }: StoryFormProps) {
 
       <div className="admin-story-form-grid">
         <div className="admin-field admin-field-wide">
-          <label htmlFor="title">Title</label>
+          <label htmlFor="title">English title</label>
           <input
             aria-describedby={describedBy("title")}
             aria-invalid={Boolean(state.fieldErrors.title)}
@@ -90,6 +96,20 @@ export function StoryForm({ mode, story }: StoryFormProps) {
             required
           />
           <FieldError id="title-error" message={state.fieldErrors.title} />
+        </div>
+
+        <div className="admin-field admin-field-wide">
+          <label htmlFor="title_zh">中文标题</label>
+          <input
+            aria-describedby={describedBy("title_zh") || "title-zh-guidance"}
+            aria-invalid={Boolean(state.fieldErrors.title_zh)}
+            defaultValue={story?.title_zh ?? ""}
+            id="title_zh"
+            maxLength={200}
+            name="title_zh"
+          />
+          <p id="title-zh-guidance">Required before Publish to Atlas.</p>
+          <FieldError id="title_zh-error" message={state.fieldErrors.title_zh} />
         </div>
 
         <div className="admin-field">
@@ -144,7 +164,7 @@ export function StoryForm({ mode, story }: StoryFormProps) {
         </div>
 
         <div className="admin-field admin-field-wide">
-          <label htmlFor="summary">Summary</label>
+          <label htmlFor="summary">English summary</label>
           <textarea
             aria-describedby={describedBy("summary")}
             aria-invalid={Boolean(state.fieldErrors.summary)}
@@ -162,7 +182,22 @@ export function StoryForm({ mode, story }: StoryFormProps) {
         </div>
 
         <div className="admin-field admin-field-wide">
-          <label htmlFor="body">Body</label>
+          <label htmlFor="summary_zh">中文摘要</label>
+          <textarea
+            aria-describedby={describedBy("summary_zh") || "summary-zh-guidance"}
+            aria-invalid={Boolean(state.fieldErrors.summary_zh)}
+            defaultValue={story?.summary_zh ?? ""}
+            id="summary_zh"
+            maxLength={1_000}
+            name="summary_zh"
+            rows={4}
+          />
+          <p id="summary-zh-guidance">Required before Publish to Atlas.</p>
+          <FieldError id="summary_zh-error" message={state.fieldErrors.summary_zh} />
+        </div>
+
+        <div className="admin-field admin-field-wide">
+          <label htmlFor="body">English body</label>
           <textarea
             aria-describedby={describedBy("body") || "body-guidance"}
             aria-invalid={Boolean(state.fieldErrors.body)}
@@ -177,6 +212,21 @@ export function StoryForm({ mode, story }: StoryFormProps) {
             Plain text only for this MVP. Separate paragraphs with a blank line.
           </p>
           <FieldError id="body-error" message={state.fieldErrors.body} />
+        </div>
+
+        <div className="admin-field admin-field-wide">
+          <label htmlFor="body_zh">中文正文</label>
+          <textarea
+            aria-describedby={describedBy("body_zh") || "body-zh-guidance"}
+            aria-invalid={Boolean(state.fieldErrors.body_zh)}
+            defaultValue={story?.body_zh ?? ""}
+            id="body_zh"
+            maxLength={100_000}
+            name="body_zh"
+            rows={18}
+          />
+          <p id="body-zh-guidance">独立保存，不从嵌入视频或英文正文即时生成。发布前必填。</p>
+          <FieldError id="body_zh-error" message={state.fieldErrors.body_zh} />
         </div>
 
         <div className="admin-field admin-field-wide">
@@ -210,6 +260,47 @@ export function StoryForm({ mode, story }: StoryFormProps) {
             id="seo_title-error"
             message={state.fieldErrors.seo_title}
           />
+        </div>
+
+        <div className="admin-field">
+          <label htmlFor="seo_title_zh">中文 SEO 标题</label>
+          <input
+            aria-describedby={describedBy("seo_title_zh")}
+            aria-invalid={Boolean(state.fieldErrors.seo_title_zh)}
+            defaultValue={story?.seo_title_zh ?? ""}
+            id="seo_title_zh"
+            maxLength={300}
+            name="seo_title_zh"
+          />
+          <FieldError id="seo_title_zh-error" message={state.fieldErrors.seo_title_zh} />
+        </div>
+
+        <div className="admin-field">
+          <label htmlFor="seo_description_zh">中文 SEO 描述</label>
+          <textarea
+            aria-describedby={describedBy("seo_description_zh")}
+            aria-invalid={Boolean(state.fieldErrors.seo_description_zh)}
+            defaultValue={story?.seo_description_zh ?? ""}
+            id="seo_description_zh"
+            maxLength={1_000}
+            name="seo_description_zh"
+            rows={4}
+          />
+          <FieldError id="seo_description_zh-error" message={state.fieldErrors.seo_description_zh} />
+        </div>
+
+        <div className="admin-field admin-field-wide">
+          <label htmlFor="tags">Tags</label>
+          <textarea
+            aria-describedby={describedBy("tags") || "tags-guidance"}
+            aria-invalid={Boolean(state.fieldErrors.tags)}
+            defaultValue={story?.tags.join(", ") ?? ""}
+            id="tags"
+            name="tags"
+            rows={3}
+          />
+          <p id="tags-guidance">Comma or line separated; at least one is required before publishing. Use Themes for cuisine and content categories.</p>
+          <FieldError id="tags-error" message={state.fieldErrors.tags} />
         </div>
 
         <div className="admin-field">

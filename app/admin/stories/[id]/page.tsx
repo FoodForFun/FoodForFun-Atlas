@@ -32,6 +32,7 @@ const statusMessages: Record<string, string> = {
   restored: "Story restored to the editorial workflow.",
   saved: "Story content saved.",
   transitioned: "Story workflow state updated.",
+  published: "The approved daily package was published to Atlas.",
   "connection-created": "Story connection added.",
   "connection-updated": "Story connection saved.",
   "connection-deleted": "Story connection removed. The related record remains intact.",
@@ -95,17 +96,23 @@ export default async function StoryEditorPage({
   const storyFormRecord = {
     atlas_insight: story.atlas_insight,
     body: story.body,
+    body_zh: story.body_zh,
     cover_image_url: story.cover_image_url,
     id: story.id,
     lock_version: story.lock_version,
     original_language: story.original_language,
     seo_description: story.seo_description,
+    seo_description_zh: story.seo_description_zh,
     seo_title: story.seo_title,
+    seo_title_zh: story.seo_title_zh,
     slug: story.slug,
     status: story.status,
     subtitle: story.subtitle,
     summary: story.summary,
+    summary_zh: story.summary_zh,
+    tags: story.tags,
     title: story.title,
+    title_zh: story.title_zh,
   };
 
   return (
