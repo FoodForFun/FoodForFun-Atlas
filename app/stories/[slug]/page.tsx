@@ -155,7 +155,7 @@ export default async function StoryPage({ params, searchParams }: StoryPageProps
   const displaySummary = useChinese ? story.summary_zh! : story.summary;
   const displayBody = useChinese ? story.body_zh! : story.body;
   const countryCode = getCountryCodeFromHeaders(await headers());
-  const videoSources = selectVideoSources(story.sources, countryCode);
+  const videoSources = selectVideoSources(story.sources, countryCode, useChinese ? "zh" : "en");
   const preferredVideo = videoSources[0] ?? null;
   const relatedStoriesResult = await getRelatedPublicStories(story);
   const paragraphs = displayBody
@@ -220,7 +220,9 @@ export default async function StoryPage({ params, searchParams }: StoryPageProps
               </div>
             )}
             <p className="video-region-note">
-              Source order is selected from the server-provided country code{countryCode ? ` (${countryCode})` : ""}.
+              {useChinese
+                ? "Chinese pages prefer Bilibili, then Weibo and YouTube as fallbacks."
+                : `Source order is selected from the server-provided country code${countryCode ? ` (${countryCode})` : ""}.`}
             </p>
             <ul className="video-fallback-list">
               {videoSources.map((source, index) => (

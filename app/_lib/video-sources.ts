@@ -90,8 +90,14 @@ export function getCountryCodeFromHeaders(headers: Headers) {
   return null;
 }
 
-export function selectVideoSources(sources: VideoSourceInput[], countryCode: string | null) {
-  const priorities: VideoPlatform[] = countryCode === "CN"
+export function selectVideoSources(
+  sources: VideoSourceInput[],
+  countryCode: string | null,
+  language: "en" | "zh" = "en",
+) {
+  const priorities: VideoPlatform[] = language === "zh"
+    ? ["bilibili", "weibo", "youtube"]
+    : countryCode === "CN"
     ? ["bilibili", "weibo", "youtube"]
     : ["youtube", "bilibili", "weibo"];
   const order = new Map(priorities.map((platform, index) => [platform, index]));
