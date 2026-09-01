@@ -185,7 +185,9 @@ a short comparison that connects the foods or places.
 每行一个店名
 
 地址：$markdownBreak
-每行一个 fully supported address, in the same order as the shops
+每行一个 fully supported address, in the same order as the shops. Always keep
+this heading; when no full address is supported, write `待核验` on the next line
+instead of omitting the section or inventing an address.
 
 文案整理：ChatGPT
 
