@@ -12,6 +12,15 @@ function error(message: string, storyId?: string): AtlasImportActionState {
   return { message, status: "error", storyId };
 }
 
+function importValidationError(errorDetails: { code?: string; message?: string } | null): string {
+  const safeCodes = new Set(["22023", "23514", "42501"]);
+  const message = errorDetails?.message?.trim();
+  if (errorDetails?.code && safeCodes.has(errorDetails.code) && message && message.length <= 240) {
+    return `Atlas validation: ${message} Nothing was imported.`;
+  }
+  return "The package did not pass Atlas validation. Nothing was imported.";
+}
+
 function importedStory(data: unknown) {
   if (!Array.isArray(data) || data.length !== 1 || !data[0] || typeof data[0] !== "object") return null;
   const row = data[0] as Record<string, unknown>;
@@ -49,7 +58,7 @@ export async function publishAtlasPackageAction(
     const supabase = await createAuthenticatedServerSupabaseClient();
     const imported = await supabase.rpc("import_approved_atlas_package", { payload });
     if (imported.error) {
-      return error("The package did not pass Atlas validation. Nothing was imported.");
+      return error(importValidationError(imported.error));
     }
     const story = importedStory(imported.data);
     if (!story) return error("The imported Story could not be verified.");
