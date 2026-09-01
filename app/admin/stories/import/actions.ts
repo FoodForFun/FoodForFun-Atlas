@@ -14,9 +14,13 @@ function error(message: string, storyId?: string): AtlasImportActionState {
 
 function importValidationError(errorDetails: { code?: string; message?: string } | null): string {
   const safeCodes = new Set(["22023", "23514", "42501"]);
+  const code = errorDetails?.code?.trim();
   const message = errorDetails?.message?.trim();
-  if (errorDetails?.code && safeCodes.has(errorDetails.code) && message && message.length <= 240) {
+  if (code && safeCodes.has(code) && message && message.length <= 240) {
     return `Atlas validation: ${message} Nothing was imported.`;
+  }
+  if (code && /^[A-Z0-9]{5}$/.test(code)) {
+    return `The package did not pass Atlas validation (code ${code}). Nothing was imported.`;
   }
   return "The package did not pass Atlas validation. Nothing was imported.";
 }
