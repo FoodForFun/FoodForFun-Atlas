@@ -21,6 +21,12 @@ test("CN and non-CN source orders preserve usable fallbacks", () => {
   assert.match(selectVideoSources(sources, "CN")[0].embedUrl || "", /player\.bilibili\.com/);
 });
 
+test("Chinese pages prefer Bilibili independently of visitor country", () => {
+  const result = selectVideoSources(sources, "US", "zh");
+  assert.deepEqual(result.map(({ platform }) => platform), ["bilibili", "weibo", "youtube"]);
+  assert.match(result[0].embedUrl || "", /player\.bilibili\.com/);
+});
+
 test("unavailable and unsafe sources are omitted", () => {
   const result = selectVideoSources([
     { ...sources[0], availability_status: "unavailable" },

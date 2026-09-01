@@ -38,8 +38,10 @@ Theme。新内容以 Approved 状态写入；随后仍由现有 `transition_stor
 3. `cloudfront-viewer-country`
 4. `x-country-code`
 
-不读取浏览器 GPS。中国大陆 (`CN`) 的顺序是 Bilibili → Weibo → YouTube；其余
-地区是 YouTube → Bilibili → Weibo。YouTube 与 Bilibili 有可验证视频 ID 时使用
+不读取浏览器 GPS。中文页面（`?lang=zh`）始终优先 Bilibili → Weibo → YouTube，
+使中文阅读与播放器保持一致；英文页面则按地区选择：大陆 (`CN`) 是 Bilibili →
+Weibo → YouTube，其他地区是 YouTube → Bilibili → Weibo。YouTube 与 Bilibili
+有可验证视频 ID 时使用
 隐私增强或官方播放器；Weibo 以及不能安全构造播放器的来源显示原站链接。
 所有可用 fallback 始终可见，因此首选平台失效时页面仍有封面、独立正文和其他
 来源入口。
