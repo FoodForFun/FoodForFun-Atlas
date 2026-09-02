@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { DoodleArrow } from "@/app/_components/doodles";
 import type { PublicStoryListItem } from "@/app/_lib/stories";
 
 const dateFormatter = new Intl.DateTimeFormat("en", {
@@ -45,7 +44,7 @@ export function StoryCard({ context, story }: StoryCardProps) {
         </h3>
         <p>{story.summary}</p>
         <Link className="story-link" href={`/stories/${story.slug}`}>
-          Read the story <DoodleArrow className="doodle-arrow" />
+          Read the story <span aria-hidden="true">→</span>
         </Link>
       </div>
     </article>

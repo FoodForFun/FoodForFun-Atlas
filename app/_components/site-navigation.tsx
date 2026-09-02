@@ -1,7 +1,5 @@
 import Link from "next/link";
 
-import { DoodleUnderline } from "@/app/_components/doodles";
-
 const navigationItems = [
   { href: "/stories", label: "Stories" },
   { href: "/places", label: "Places" },
@@ -17,10 +15,7 @@ export function SiteNavigation() {
       <div className="global-header-inner">
         <Link className="site-wordmark" href="/" aria-label="FoodForFun Atlas home">
           <span>FoodForFun</span>
-          <span className="site-wordmark-atlas">
-            Atlas
-            <DoodleUnderline className="site-wordmark-underline" />
-          </span>
+          <span className="site-wordmark-atlas">Atlas</span>
         </Link>
         <nav className="primary-navigation" aria-label="Primary navigation">
           <ul>

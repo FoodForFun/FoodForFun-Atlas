@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 
 import { StoryCard } from "@/app/_components/story-card";
-import { DoodleUnderline } from "@/app/_components/doodles";
 import {
   createPublicPageMetadata,
   createStoryMetadata,
@@ -155,7 +154,6 @@ export default async function StoryPage({ params, searchParams }: StoryPageProps
   const displayTitle = useChinese ? story.title_zh! : story.title;
   const displaySummary = useChinese ? story.summary_zh! : story.summary;
   const displayBody = useChinese ? story.body_zh! : story.body;
-  const isEditorialTestStory = story.slug === "saitama-500-yen-ramen-truck";
   const countryCode = getCountryCodeFromHeaders(await headers());
   const videoSources = selectVideoSources(story.sources, countryCode, useChinese ? "zh" : "en");
   const preferredVideo = videoSources[0] ?? null;
@@ -184,28 +182,12 @@ export default async function StoryPage({ params, searchParams }: StoryPageProps
               ) : null}
             </nav>
           </div>
-          <div className="story-title-lockup">
-            <h1>{displayTitle}</h1>
-            {isEditorialTestStory ? (
-              <DoodleUnderline className="story-title-underline" />
-            ) : null}
-          </div>
+          <h1>{displayTitle}</h1>
           <p className="story-summary">{displaySummary}</p>
           <time dateTime={story.published_at}>
             Published {dateFormatter.format(new Date(story.published_at))}
           </time>
         </header>
-
-        {story.cover_image_url ? (
-          // The database stores public image URLs from varied hosts.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            className="story-cover"
-            src={story.cover_image_url}
-            alt=""
-            decoding="async"
-          />
-        ) : null}
 
         {preferredVideo ? (
           <section className="story-video" aria-labelledby="story-video-heading">
