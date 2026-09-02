@@ -78,14 +78,6 @@ body {
   font-weight: 400;
 }
 
-.site-wordmark-underline {
-  position: absolute;
-  right: -0.1rem;
-  bottom: -0.35rem;
-  width: 2.5rem;
-  color: var(--accent);
-}
-
 .primary-navigation,
 .home-entry-links,
 .directory-card,
@@ -561,21 +553,6 @@ time {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-}
-
-.doodle-arrow {
-  width: 1.7rem;
-  color: var(--accent);
-}
-
-.doodle-arrow path,
-.site-wordmark-underline path,
-.story-title-underline path {
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.7;
-  vector-effect: non-scaling-stroke;
 }
 
 .story-page {
@@ -1375,16 +1352,13 @@ time {
   line-height: 0.98;
 }
 
-.story-title-lockup {
-  position: relative;
-  width: fit-content;
+.story-page:not(.admin-story-preview) .story-header h1 {
+  font-size: clamp(2.25rem, 5.5vw, 4.6rem);
+  line-height: 1.04;
 }
 
-.story-title-underline {
-  display: block;
-  width: min(12rem, 38%);
-  margin: 0.8rem 0 0 auto;
-  color: var(--accent);
+.story-header + .story-video {
+  padding-top: 0;
 }
 
 .story-summary {
