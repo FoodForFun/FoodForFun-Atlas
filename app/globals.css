@@ -12,6 +12,10 @@
   --line-strong: #aaa99f;
   --radius-small: 0.2rem;
   --space-section: clamp(4rem, 8vw, 7rem);
+  --type-page-title: clamp(2.1rem, 4.5vw, 3.5rem);
+  --type-story-title: clamp(2rem, 4vw, 3.25rem);
+  --type-section-title: clamp(1.65rem, 3vw, 2.35rem);
+  --type-card-title: clamp(1.35rem, 2.4vw, 1.9rem);
 }
 
 * {
@@ -154,7 +158,7 @@ input:focus-visible {
 }
 
 .home-hero h1 {
-  font-size: clamp(3.5rem, 8vw, 7rem);
+  font-size: var(--type-page-title);
 }
 
 .eyebrow,
@@ -187,7 +191,7 @@ p {
 h1 {
   max-width: 13ch;
   margin: 0;
-  font-size: clamp(3rem, 9vw, 7rem);
+  font-size: var(--type-page-title);
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 0.92;
@@ -274,7 +278,7 @@ h1 {
 
 .discovery-list span {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+  font-size: var(--type-card-title);
   line-height: 1.15;
 }
 
@@ -318,7 +322,7 @@ h1 {
 
 .home-about h2 {
   max-width: 14ch;
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: var(--type-section-title);
 }
 
 .home-about p:last-child {
@@ -345,7 +349,7 @@ h1 {
 }
 
 .about-hero h1 {
-  font-size: clamp(3.25rem, 7vw, 6.25rem);
+  font-size: var(--type-page-title);
 }
 
 .about-lede > p:last-child,
@@ -370,7 +374,7 @@ h1 {
 
 .about-section-heading h2 {
   max-width: 13ch;
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: var(--type-section-title);
 }
 
 .about-section-content {
@@ -446,7 +450,7 @@ h1 {
 
 h2 {
   margin: 0;
-  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-size: var(--type-section-title);
   font-weight: 500;
   letter-spacing: -0.035em;
 }
@@ -506,7 +510,7 @@ time {
 
 .story-card h3 {
   margin: 0.85rem 0 0;
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-size: var(--type-card-title);
   font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 1.08;
@@ -569,7 +573,7 @@ time {
 .story-video h2 {
   max-width: 18ch;
   margin-bottom: 1.5rem;
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: var(--type-section-title);
 }
 
 .story-header-topline {
@@ -666,7 +670,7 @@ time {
 
 .theme-header h1 {
   max-width: 16ch;
-  font-size: clamp(3.5rem, 9vw, 7rem);
+  font-size: var(--type-page-title);
 }
 
 .theme-description {
@@ -692,7 +696,7 @@ time {
 }
 
 .theme-places h2 {
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: var(--type-section-title);
 }
 
 .theme-places ul {
@@ -728,7 +732,7 @@ time {
 
 .place-header h1 {
   max-width: 16ch;
-  font-size: clamp(3.5rem, 9vw, 7rem);
+  font-size: var(--type-page-title);
 }
 
 .place-metadata,
@@ -782,7 +786,7 @@ time {
 }
 
 .map-header h1 {
-  font-size: clamp(3.5rem, 9vw, 7rem);
+  font-size: var(--type-page-title);
 }
 
 .map-header > div:last-child p {
@@ -900,7 +904,7 @@ time {
 }
 
 .map-preview-place h2 {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: var(--type-card-title);
 }
 
 .map-preview-place-list {
@@ -1004,7 +1008,7 @@ time {
 .map-location-index h2 {
   max-width: 12ch;
   margin: 0;
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: var(--type-section-title);
   font-weight: 500;
   letter-spacing: -0.035em;
 }
@@ -1044,7 +1048,7 @@ time {
 }
 
 .search-header h1 {
-  font-size: clamp(3.5rem, 9vw, 7rem);
+  font-size: var(--type-page-title);
 }
 
 .search-header > p:last-of-type {
@@ -1126,7 +1130,7 @@ time {
 .search-results-header h2 {
   max-width: 18ch;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-size: var(--type-section-title);
 }
 
 .no-results > p:last-of-type,
@@ -1177,7 +1181,7 @@ time {
 .search-result-group h3 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: var(--type-card-title);
   font-weight: 500;
   letter-spacing: -0.03em;
 }
@@ -1220,7 +1224,7 @@ time {
 .search-result-title {
   margin-top: 1.25rem;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-size: var(--type-card-title);
   line-height: 1.12;
 }
 
@@ -1258,7 +1262,7 @@ time {
 
 .directory-card-title {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: var(--type-card-title);
   line-height: 1.1;
 }
 
@@ -1301,7 +1305,7 @@ time {
 }
 
 .archive-header h1 {
-  font-size: clamp(3.5rem, 9vw, 7rem);
+  font-size: var(--type-page-title);
 }
 
 .archive-header > p:last-child {
@@ -1353,7 +1357,7 @@ time {
 }
 
 .story-page:not(.admin-story-preview) .story-header h1 {
-  font-size: clamp(2.25rem, 5.5vw, 4.6rem);
+  font-size: var(--type-story-title);
   line-height: 1.04;
 }
 
@@ -1409,7 +1413,7 @@ time {
 
 .story-connections > h2,
 .story-sources > h2 {
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: var(--type-section-title);
 }
 
 .connection-groups {
@@ -1615,7 +1619,7 @@ time {
 
 .error-content h1 {
   max-width: 12ch;
-  font-size: clamp(3rem, 8vw, 6rem);
+  font-size: var(--type-page-title);
 }
 
 .error-message {
@@ -1663,7 +1667,7 @@ time {
 
 .not-found-content h1 {
   max-width: 12ch;
-  font-size: clamp(3rem, 8vw, 6rem);
+  font-size: var(--type-page-title);
 }
 
 .not-found-message {
