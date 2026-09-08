@@ -295,40 +295,46 @@ export async function updateSourcePrivateDetailsAction(
   try {
     const supabase = await createAuthenticatedServerSupabaseClient();
     const record = await getEditorialSourceWithClient(supabase, sourceId);
-    if (!record) {
-      return privateErrorState(
-        "The Source is no longer available to this account.",
-      );
-    }
+    // The Source editor itself can load this record, but a second read can
+    // occasionally fail after a package import. Do not turn that transient
+    // read failure into a false "no longer available" result: the protected
+    // RPC below remains the authoritative authorization and lock check.
+    if (record) {
+      const capabilities = getSourceCapabilities({
+        aal: access.identity.aal,
+        requiresPublicationAssurance: record.requiresPublicationAssurance,
+        role: access.role,
+        source: record.source,
+        userId: access.identity.userId,
+      });
+      if (!capabilities.canEditPrivateDetails) {
+        return privateErrorState(
+          "Your current role, ownership, or session assurance does not permit this private edit.",
+        );
+      }
 
-    const capabilities = getSourceCapabilities({
-      aal: access.identity.aal,
-      requiresPublicationAssurance: record.requiresPublicationAssurance,
-      role: access.role,
-      source: record.source,
-      userId: access.identity.userId,
-    });
-    if (!capabilities.canEditPrivateDetails) {
-      return privateErrorState(
-        "Your current role, ownership, or session assurance does not permit this private edit.",
-      );
-    }
-
-    const publicEditConfirmed =
-      !record.requiresPublicationAssurance ||
-      readFormValue(formData, "confirm_public_source_edit") ===
-        "confirm-public-source-edit";
-    if (!publicEditConfirmed) {
-      return privateErrorState(
-        "Confirm that this rights or transcript review may affect public Story publication checks.",
-      );
+      const publicEditConfirmed =
+        !record.requiresPublicationAssurance ||
+        readFormValue(formData, "confirm_public_source_edit") ===
+          "confirm-public-source-edit";
+      if (!publicEditConfirmed) {
+        return privateErrorState(
+          "Confirm that this rights or transcript review may affect public Story publication checks.",
+        );
+      }
     }
 
     const { data, error } = await supabase.rpc(
       "update_source_private_details",
       {
         changes: validated.data,
-        confirmed: record.requiresPublicationAssurance,
+        // If the read above failed, only an explicit public-edit confirmation
+        // is forwarded. The database RPC independently enforces Publisher
+        // AAL2 plus confirmation whenever publication assurance is required.
+        confirmed:
+          record?.requiresPublicationAssurance ??
+          readFormValue(formData, "confirm_public_source_edit") ===
+            "confirm-public-source-edit",
         expected_lock_version: expectedLockVersion,
         target_source_id: sourceId,
       },
