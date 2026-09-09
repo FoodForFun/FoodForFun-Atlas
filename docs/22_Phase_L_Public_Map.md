@@ -1,3 +1,8 @@
+# Historical Phase L design
+
+The current frontend behavior is documented in [Map V1](26_Map_V1.md). The original
+coordinate privacy boundary below remains in use; the schematic UI was replaced.
+
 # FoodForFun Atlas - Phase L Privacy-Preserving Public Map
 
 **Status:** Application implemented; Production database rollout pending approval

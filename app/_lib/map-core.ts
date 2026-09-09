@@ -49,6 +49,7 @@ const supportedPrecisions = new Set<PublicMapPrecision>([
 ]);
 
 function finiteCoordinate(value: number | string, minimum: number, maximum: number) {
+  if (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) return null;
   const coordinate = typeof value === "number" ? value : Number(value);
   return Number.isFinite(coordinate) && coordinate >= minimum && coordinate <= maximum
     ? coordinate

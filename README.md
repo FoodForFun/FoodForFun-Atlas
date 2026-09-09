@@ -109,9 +109,9 @@ Phase J adds canonical URLs and factual Open Graph/Twitter metadata across the
 public Atlas, with real Story publication data and safe optional cover images.
 Phase K adds bounded, explainable Related Stories selected through shared public
 Place and Theme relationships.
-Phase L adds the provider-free public Map, server-side location generalization,
-overlap grouping, and a database-enforced boundary that prevents anonymous raw
-coordinate reads. Phase M adds reproducible application and isolated database
+Phase L adds a database-enforced public coordinate boundary. [Map V1](docs/26_Map_V1.md)
+uses MapLibre shop markers linked directly to Stories while preserving approved
+public location precision. Phase M adds reproducible application and isolated database
 validation in GitHub Actions.
 
 ## Project Documentation

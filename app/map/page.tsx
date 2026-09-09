@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { buildAtlasMapPosts } from "@/app/_lib/atlas-map";
 import { getPublicMapPoints } from "@/app/_lib/map";
 import { createPublicPageMetadata } from "@/app/_lib/seo";
 import { MapExplorer } from "./_components/map-explorer";
@@ -40,10 +41,8 @@ export default async function MapPage() {
 
       {result.error ? (
         <MapNotice unavailable />
-      ) : result.data.length === 0 ? (
-        <MapNotice />
       ) : (
-        <MapExplorer points={result.data} />
+        <MapExplorer posts={buildAtlasMapPosts(result.data)} />
       )}
     </main>
   );
