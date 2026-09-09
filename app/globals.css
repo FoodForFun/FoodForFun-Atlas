@@ -2644,3 +2644,15 @@ time {
     scroll-behavior: auto;
   }
 }
+
+/* Map V1: paper, ink and small shop signs. */
+.shop-map-explorer { min-width: 0; }
+.shop-map-canvas { width: 100%; height: clamp(24rem, 65vh, 46rem); background: var(--paper); border: 1px solid var(--line); }
+.shop-map-marker { display: flex; flex-direction: column; align-items: center; gap: 3px; color: #24211c; text-decoration: none; max-width: 160px; }
+.shop-map-marker-icon { display: grid; place-items: center; width: 40px; height: 40px; background: #faf7f0; border: 1px solid #b7a998; border-radius: 9px; font-size: 25px; box-shadow: 0 2px 5px #24211c20; }
+.shop-map-marker-label { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: #faf7f0ed; padding: 2px 6px; font: 12px/1.5 Georgia, serif; border-radius: 2px; }
+.shop-map-marker:hover, .shop-map-marker:focus-visible { z-index: 2; color: #a34432; }
+.shop-map-marker:focus-visible { outline: 3px solid #a34432; outline-offset: 4px; }
+.shop-map-marker:hover .shop-map-marker-icon { border-color: #a34432; }
+.shop-map-canvas .maplibregl-ctrl-group { background: #faf7f0; }
+@media (max-width: 600px) { .shop-map-canvas { height: 60vh; min-height: 22rem; } }

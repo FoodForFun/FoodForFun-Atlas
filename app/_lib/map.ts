@@ -49,6 +49,7 @@ export async function getPublicMapPoints(): Promise<PublicMapResult> {
       .select(
         `
           place_id,
+          is_primary,
           story:stories (
             id,
             title,
@@ -62,6 +63,7 @@ export async function getPublicMapPoints(): Promise<PublicMapResult> {
         "place_id",
         places.map(({ id }) => id),
       )
+      .eq("is_primary", true)
       .order("display_order", { ascending: true })
       .limit(publicMapRelationshipLimit);
 

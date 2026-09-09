@@ -94,7 +94,7 @@ test("Map reads only the safe public projection and stays bounded and fail-safe"
   assert.match(server, /return \{ data: null, error: true \}/);
   assert.match(page, /createPublicPageMetadata/);
   assert.match(page, /Hidden Places never appear/);
-  assert.match(client, /aria-pressed/);
+  assert.match(client, /aria-label/);
   assert.match(client, /map-location-index/);
 });
 
@@ -115,4 +115,10 @@ test("Map migration removes raw coordinate grants and generalizes every public t
   assert.match(migration, /p\.location_precision in \('exact', 'neighborhood', 'city', 'region'\)/);
   assert.match(migration, /s\.status = 'published'/);
   assert.doesNotMatch(migration, /location_precision in \([^)]*hidden/);
+});
+
+test("Map points do not convert missing or blank coordinates to zero", () => {
+  for (const latitude of [null, undefined, "", " "]) {
+    assert.deepEqual(buildPublicMapPoints([place("a", { latitude: latitude as never })], [{ place_id: "a", story }]), []);
+  }
 });

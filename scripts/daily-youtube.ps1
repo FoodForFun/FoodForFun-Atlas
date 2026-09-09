@@ -152,6 +152,10 @@ function Get-SafeShortTitle {
     param([string]$Title)
 
     $shortTitle = ([string]$Title).Normalize([Text.NormalizationForm]::FormKC).Trim()
+    # Treat emoji and other non-filename symbols as a title boundary. This keeps
+    # a title such as "Inside a GERMAN BUTCHER SHOP [flag] Viktualienmarkt" short
+    # and prevents damaged surrogate characters from reaching ffmpeg paths.
+    $shortTitle = $shortTitle -replace '[\p{Cs}\p{So}\p{Cn}\p{Cc}\p{Cf}]', '|'
     $parts = $shortTitle -split '[!！?？|｜【】\[\]]'
     $firstPart = $parts | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 
@@ -163,6 +167,10 @@ function Get-SafeShortTitle {
         $shortTitle = $shortTitle.Replace([string]$character, "-")
     }
 
+    # Keep generated Windows paths compatible with ffmpeg. Emoji, unpaired
+    # surrogate code units, and replacement/control characters can survive
+    # GetInvalidFileNameChars() but fail when ffmpeg opens the downloaded parts.
+    $shortTitle = $shortTitle -replace '[\p{Cs}\p{So}\p{Cn}\p{Cc}\p{Cf}]', ''
     $shortTitle = $shortTitle -replace '_', '-'
     $shortTitle = $shortTitle -replace '\s+', ' '
     $shortTitle = $shortTitle.Trim(' ', '.', '-')
